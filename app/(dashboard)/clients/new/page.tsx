@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+
 export default async function NewClientPage() {
   const supabase = createClient()
   
@@ -15,7 +17,7 @@ export default async function NewClientPage() {
     .from('users')
     .select('id, full_name')
     .eq('is_active', true)
-    .order('full_name')
+    .order('full_name');
 
   return (
     <div className="p-8">
@@ -221,5 +223,5 @@ export default async function NewClientPage() {
         </div>
       </form>
     </div>
-  )
+  );
 }

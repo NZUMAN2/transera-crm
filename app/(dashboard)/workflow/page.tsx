@@ -1,7 +1,7 @@
-// app/(dashboard)/workflow/page.tsx
-
 import { createClient } from '@/lib/supabase/server'
 import WorkflowBoard from './workflow-board'
+
+export const dynamic = 'force-dynamic'
 
 export default async function WorkflowPage() {
   const supabase = createClient()

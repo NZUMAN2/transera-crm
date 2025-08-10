@@ -1,8 +1,20 @@
 // app/(dashboard)/dashboard/page.tsx
 
+import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
+import { 
+  Users, 
+  Briefcase, 
+  Building2, 
+  TrendingUp,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  DollarSign
+} from 'lucide-react'
+
+export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
   const supabase = createClient()
@@ -13,159 +25,230 @@ export default async function DashboardPage() {
     redirect('/login')
   }
 
-  // Get user profile
-  const { data: profile } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+  // Fetch real stats
+  const [
+    { count: jobsCount },
+    { count: candidatesCount },
+    { count: clientsCount },
+    { data: recentPlacements }
+  ] = await Promise.all([
+    supabase.from('jobs').select('*', { count: 'exact', head: true }).eq('status', 'open'),
+    supabase.from('candidates').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+    supabase.from('clients').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+    supabase.from('placements').select('*').order('created_at', { ascending: false }).limit(5)
+  ])
 
-  // Get dashboard stats
-  const { count: openJobs } = await supabase
-    .from('jobs')
-    .select('*', { count: 'exact', head: true })
-    .eq('status', 'open')
+  const stats = [
+    {
+      title: 'Active Jobs',
+      value: jobsCount || 0,
+      icon: Briefcase,
+      change: '+12%',
+      changeType: 'positive',
+      link: '/jobs'
+    },
+    {
+      title: 'Total Candidates',
+      value: candidatesCount || 0,
+      icon: Users,
+      change: '+8%',
+      changeType: 'positive',
+      link: '/candidates'
+    },
+    {
+      title: 'Active Clients',
+      value: clientsCount || 0,
+      icon: Building2,
+      change: '+5%',
+      changeType: 'positive',
+      link: '/clients'
+    },
+    {
+      title: 'Revenue MTD',
+      value: 'R485K',
+      icon: DollarSign,
+      change: '+15%',
+      changeType: 'positive',
+      link: '/reports'
+    }
+  ]
 
-  const { count: activeCandidates } = await supabase
-    .from('candidates')
-    .select('*', { count: 'exact', head: true })
-    .eq('status', 'active')
-
-  const { count: activeClients } = await supabase
-    .from('clients')
-    .select('*', { count: 'exact', head: true })
-    .eq('status', 'active')
-
-  const { count: placements } = await supabase
-    .from('applications')
-    .select('*', { count: 'exact', head: true })
-    .eq('status', 'placed')
+  const quickActions = [
+    { title: 'Add New Job', icon: Briefcase, link: '/jobs/new', color: 'bg-purple-500' },
+    { title: 'Add Candidate', icon: Users, link: '/candidates/new', color: 'bg-blue-500' },
+    { title: 'Add Client', icon: Building2, link: '/clients/new', color: 'bg-green-500' },
+    { title: 'View Reports', icon: TrendingUp, link: '/reports', color: 'bg-orange-500' }
+  ]
 
   return (
-    <div className="p-8">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-        {/* Active Jobs Card */}
-        <div className="bg-gradient-to-br from-purple-500 to-purple-700 rounded-xl shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm opacity-90">Active Jobs</p>
-            <span className="text-2xl">💼</span>
-          </div>
-          <p className="text-4xl font-bold">{openJobs || 47}</p>
-          <p className="text-xs opacity-75 mt-1">↑ 12% from last month</p>
-        </div>
+    <div className="p-6 space-y-6">
+      {/* Welcome Section */}
+      <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg p-6 text-white">
+        <h1 className="text-3xl font-bold">Welcome back!</h1>
+        <p className="text-purple-100 mt-2">Here's what's happening with your recruitment pipeline today.</p>
+      </div>
 
-        {/* Total Candidates Card */}
-        <div className="bg-gradient-to-br from-green-500 to-green-700 rounded-xl shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm opacity-90">Total Candidates</p>
-            <span className="text-2xl">👥</span>
-          </div>
-          <p className="text-4xl font-bold">{activeCandidates || 326}</p>
-          <p className="text-xs opacity-75 mt-1">↑ 8% from last month</p>
-        </div>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {stats.map((stat) => {
+          const Icon = stat.icon
+          return (
+            <Link key={stat.title} href={stat.link}>
+              <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow cursor-pointer">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">{stat.title}</p>
+                    <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
+                    <div className="flex items-center mt-2">
+                      <span className={`text-sm font-medium ${
+                        stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {stat.change}
+                      </span>
+                      <span className="text-xs text-gray-500 ml-2">from last month</span>
+                    </div>
+                  </div>
+                  <div className="bg-purple-100 rounded-full p-3">
+                    <Icon className="h-6 w-6 text-purple-600" />
+                  </div>
+                </div>
+              </div>
+            </Link>
+          )
+        })}
+      </div>
 
-        {/* Placements MTD Card */}
-        <div className="bg-gradient-to-br from-orange-500 to-orange-700 rounded-xl shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm opacity-90">Placements MTD</p>
-            <span className="text-2xl">📈</span>
-          </div>
-          <p className="text-4xl font-bold">{placements || 12}</p>
-          <p className="text-xs opacity-75 mt-1">Target: 15</p>
-        </div>
-
-        {/* Revenue MTD Card */}
-        <div className="bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm opacity-90">Revenue MTD</p>
-            <span className="text-2xl">💰</span>
-          </div>
-          <p className="text-4xl font-bold">R485K</p>
-          <p className="text-xs opacity-75 mt-1">Target: R500K</p>
-        </div>
-
-        {/* LinkedIn Applications Card */}
-        <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-xl shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm opacity-90">LinkedIn Applications</p>
-            <span className="text-2xl">🔗</span>
-          </div>
-          <p className="text-4xl font-bold">0</p>
-          <p className="text-xs opacity-75 mt-1">Ready to import</p>
+      {/* Quick Actions */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {quickActions.map((action) => {
+            const Icon = action.icon
+            return (
+              <Link key={action.title} href={action.link}>
+                <button className="flex flex-col items-center justify-center p-4 rounded-lg border-2 border-gray-200 hover:border-purple-500 hover:bg-purple-50 transition-all w-full">
+                  <div className={`${action.color} rounded-full p-3 text-white mb-2`}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <span className="text-sm font-medium text-gray-700">{action.title}</span>
+                </button>
+              </Link>
+            )
+          })}
         </div>
       </div>
 
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Revenue & Placements Chart */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Revenue & Placements</h3>
-          <div className="h-64 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg flex items-center justify-center">
-            <p className="text-gray-500">Chart visualization will be here</p>
-          </div>
-        </div>
-
-        {/* Jobs by Phase */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Jobs by Phase</h3>
-          <div className="h-64 bg-gradient-to-br from-blue-50 to-green-50 rounded-lg flex items-center justify-center">
-            <p className="text-gray-500">Pipeline visualization will be here</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Section */}
+      {/* Recent Activity & Pipeline */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Activity */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Recent Activity</h3>
-          <div className="space-y-3">
-            <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h2>
+          <div className="space-y-4">
+            <div className="flex items-start space-x-3">
+              <div className="bg-green-100 rounded-full p-2">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+              </div>
               <div className="flex-1">
-                <p className="text-sm font-medium">Athi logged in</p>
-                <p className="text-xs text-gray-500">Just now</p>
+                <p className="text-sm text-gray-900">New candidate added</p>
+                <p className="text-xs text-gray-500">John Doe - Senior Developer</p>
+                <p className="text-xs text-gray-400 mt-1">2 hours ago</p>
               </div>
             </div>
-            <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <div className="flex items-start space-x-3">
+              <div className="bg-blue-100 rounded-full p-2">
+                <Briefcase className="h-4 w-4 text-blue-600" />
+              </div>
               <div className="flex-1">
-                <p className="text-sm font-medium">Thembeka logged in</p>
-                <p className="text-xs text-gray-500">5 minutes ago</p>
+                <p className="text-sm text-gray-900">Job posted</p>
+                <p className="text-xs text-gray-500">UI/UX Designer at TechCorp</p>
+                <p className="text-xs text-gray-400 mt-1">5 hours ago</p>
+              </div>
+            </div>
+            <div className="flex items-start space-x-3">
+              <div className="bg-yellow-100 rounded-full p-2">
+                <AlertCircle className="h-4 w-4 text-yellow-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-gray-900">Interview scheduled</p>
+                <p className="text-xs text-gray-500">Jane Smith - Tomorrow 10:00 AM</p>
+                <p className="text-xs text-gray-400 mt-1">Yesterday</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Team Status */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Team Status</h3>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                  <span className="text-sm font-bold text-purple-600">A</span>
-                </div>
-                <div>
-                  <p className="text-sm font-medium">Athi</p>
-                  <p className="text-xs text-gray-500">Consultant</p>
-                </div>
+        {/* Pipeline Overview */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Pipeline Overview</h2>
+          <div className="space-y-4">
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm text-gray-600">Sourcing</span>
+                <span className="text-sm font-medium text-gray-900">15 candidates</span>
               </div>
-              <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">Online</span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center">
-                  <span className="text-sm font-bold text-pink-600">T</span>
-                </div>
-                <div>
-                  <p className="text-sm font-medium">Thembeka</p>
-                  <p className="text-xs text-gray-500">Consultant</p>
-                </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-purple-600 h-2 rounded-full" style={{ width: '60%' }}></div>
               </div>
-              <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">Online</span>
             </div>
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm text-gray-600">Screening</span>
+                <span className="text-sm font-medium text-gray-900">8 candidates</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-blue-600 h-2 rounded-full" style={{ width: '40%' }}></div>
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm text-gray-600">Interview</span>
+                <span className="text-sm font-medium text-gray-900">5 candidates</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-green-600 h-2 rounded-full" style={{ width: '25%' }}></div>
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm text-gray-600">Offer</span>
+                <span className="text-sm font-medium text-gray-900">2 candidates</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-orange-600 h-2 rounded-full" style={{ width: '10%' }}></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Upcoming Tasks */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Today's Tasks</h2>
+          <Link href="/tasks" className="text-sm text-purple-600 hover:text-purple-700">
+            View all
+          </Link>
+        </div>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center space-x-3">
+              <Clock className="h-5 w-5 text-gray-400" />
+              <div>
+                <p className="text-sm font-medium text-gray-900">Follow up with candidate</p>
+                <p className="text-xs text-gray-500">John Doe - Senior Developer position</p>
+              </div>
+            </div>
+            <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">10:00 AM</span>
+          </div>
+          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center space-x-3">
+              <Clock className="h-5 w-5 text-gray-400" />
+              <div>
+                <p className="text-sm font-medium text-gray-900">Client meeting</p>
+                <p className="text-xs text-gray-500">TechCorp - Discuss new requirements</p>
+              </div>
+            </div>
+            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">2:00 PM</span>
           </div>
         </div>
       </div>

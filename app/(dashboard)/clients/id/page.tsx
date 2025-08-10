@@ -6,6 +6,8 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { updateClientStatus, deleteClientCompany } from '../actions'
 
+export const dynamic = 'force-dynamic'
+
 export default async function ClientDetailsPage({ 
   params 
 }: { 
