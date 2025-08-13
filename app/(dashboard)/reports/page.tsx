@@ -6,179 +6,134 @@ import {
   RiDownloadLine, 
   RiFileExcelLine, 
   RiFilePdfLine,
-  RiPrinterLine,
-  RiMailLine
+  RiMailLine,
+  RiBarChartLine
 } from 'react-icons/ri'
 
 export default function ReportsPage() {
   const [selectedReport, setSelectedReport] = useState('monthly')
-  const [dateRange, setDateRange] = useState({ start: '', end: '' })
   
   const reportTypes = [
-    { id: 'monthly', name: 'Monthly Report', icon: '📊' },
-    { id: 'candidates', name: 'Candidates Report', icon: '👥' },
-    { id: 'placements', name: 'Placements Report', icon: '✅' },
-    { id: 'performance', name: 'Performance Report', icon: '📈' }
+    { id: 'monthly', name: 'Monthly Report', icon: '📊', count: 45 },
+    { id: 'candidates', name: 'Candidates Report', icon: '👥', count: 326 },
+    { id: 'placements', name: 'Placements Report', icon: '✅', count: 12 },
+    { id: 'performance', name: 'Performance Report', icon: '📈', count: 8 }
   ]
 
-  const exportData = (format: 'pdf' | 'excel' | 'csv') => {
-    // Create sample data
-    const data = [
-      ['Name', 'Role', 'Status', 'Date'],
-      ['John Doe', 'Software Engineer', 'Hired', '2025-01-15'],
-      ['Jane Smith', 'Product Manager', 'Interview', '2025-01-14'],
-      ['Mike Johnson', 'Designer', 'Applied', '2025-01-13']
-    ]
-
+  const handleExport = (format: string) => {
+    // Sample CSV export
     if (format === 'csv') {
-      const csv = data.map(row => row.join(',')).join('\n')
-      const blob = new Blob([csv], { type: 'text/csv' })
+      const csvContent = "Name,Role,Status,Date\nJohn Doe,Software Engineer,Hired,2025-01-15\nJane Smith,Product Manager,Interview,2025-01-14"
+      const blob = new Blob([csvContent], { type: 'text/csv' })
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
       a.download = `report-${Date.now()}.csv`
       a.click()
     } else {
-      alert(`Exporting as ${format.toUpperCase()}... (Feature will be fully implemented with libraries)`)
+      alert(`Export as ${format.toUpperCase()} will be available soon!`)
     }
   }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-            Reports & Export 📊
-          </h1>
-          <p className="text-gray-600 mt-1">Generate and export recruitment reports</p>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+          Reports & Analytics 📊
+        </h1>
+        <p className="text-gray-600 mt-1">Generate and export recruitment reports</p>
       </div>
 
-      {/* Report Selection */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-        <h3 className="font-bold text-lg mb-4">Select Report Type</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {reportTypes.map(report => (
-            <button
-              key={report.id}
-              onClick={() => setSelectedReport(report.id)}
-              className={`p-4 rounded-lg border-2 transition-all ${
-                selectedReport === report.id
-                  ? 'border-purple-500 bg-purple-50'
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              <div className="text-2xl mb-2">{report.icon}</div>
-              <div className="text-sm font-medium">{report.name}</div>
-            </button>
-          ))}
-        </div>
-
-        {/* Date Range */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
-            <input
-              type="date"
-              value={dateRange.start}
-              onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
-            <input
-              type="date"
-              value={dateRange.end}
-              onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
-            />
-          </div>
-        </div>
+      {/* Report Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {reportTypes.map((report) => (
+          <motion.div
+            key={report.id}
+            whileHover={{ scale: 1.05 }}
+            onClick={() => setSelectedReport(report.id)}
+            className={`p-6 rounded-xl cursor-pointer transition-all ${
+              selectedReport === report.id
+                ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
+                : 'bg-white border border-gray-200 hover:shadow-md'
+            }`}
+          >
+            <div className="text-3xl mb-3">{report.icon}</div>
+            <h3 className="font-bold text-lg mb-1">{report.name}</h3>
+            <p className={`text-2xl font-bold ${
+              selectedReport === report.id ? 'text-white' : 'text-gray-800'
+            }`}>
+              {report.count}
+            </p>
+          </motion.div>
+        ))}
       </div>
 
-      {/* Export Options */}
+      {/* Export Section */}
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
         <h3 className="font-bold text-lg mb-4">Export Options</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => exportData('pdf')}
-            className="p-4 bg-red-50 hover:bg-red-100 rounded-lg transition-all"
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={() => handleExport('pdf')}
+            className="px-6 py-3 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 flex items-center gap-2"
           >
-            <RiFilePdfLine className="text-red-500 text-2xl mx-auto mb-2" />
-            <span className="text-sm font-medium">Export as PDF</span>
-          </motion.button>
-          
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => exportData('excel')}
-            className="p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-all"
+            <RiFilePdfLine /> Export as PDF
+          </button>
+          <button
+            onClick={() => handleExport('excel')}
+            className="px-6 py-3 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 flex items-center gap-2"
           >
-            <RiFileExcelLine className="text-green-500 text-2xl mx-auto mb-2" />
-            <span className="text-sm font-medium">Export as Excel</span>
-          </motion.button>
-          
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => exportData('csv')}
-            className="p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all"
+            <RiFileExcelLine /> Export as Excel
+          </button>
+          <button
+            onClick={() => handleExport('csv')}
+            className="px-6 py-3 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 flex items-center gap-2"
           >
-            <RiDownloadLine className="text-blue-500 text-2xl mx-auto mb-2" />
-            <span className="text-sm font-medium">Export as CSV</span>
-          </motion.button>
-          
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-all"
+            <RiDownloadLine /> Export as CSV
+          </button>
+          <button
+            onClick={() => alert('Email feature coming soon!')}
+            className="px-6 py-3 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 flex items-center gap-2"
           >
-            <RiMailLine className="text-purple-500 text-2xl mx-auto mb-2" />
-            <span className="text-sm font-medium">Email Report</span>
-          </motion.button>
+            <RiMailLine /> Email Report
+          </button>
         </div>
       </div>
 
-      {/* Report Preview */}
+      {/* Data Preview */}
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-        <h3 className="font-bold text-lg mb-4">Report Preview</h3>
+        <h3 className="font-bold text-lg mb-4">Data Preview</h3>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left py-2 px-4">Candidate</th>
-                <th className="text-left py-2 px-4">Position</th>
-                <th className="text-left py-2 px-4">Status</th>
-                <th className="text-left py-2 px-4">Date</th>
-                <th className="text-left py-2 px-4">Action</th>
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Name</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Position</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Date</th>
               </tr>
             </thead>
             <tbody>
               {[
                 { name: 'John Doe', position: 'Software Engineer', status: 'Hired', date: '2025-01-15' },
                 { name: 'Jane Smith', position: 'Product Manager', status: 'Interview', date: '2025-01-14' },
-                { name: 'Mike Johnson', position: 'Designer', status: 'Applied', date: '2025-01-13' }
+                { name: 'Mike Johnson', position: 'Designer', status: 'Applied', date: '2025-01-13' },
+                { name: 'Sarah Williams', position: 'Data Scientist', status: 'Screening', date: '2025-01-12' }
               ].map((row, index) => (
-                <tr key={index} className="border-b hover:bg-gray-50">
-                  <td className="py-2 px-4">{row.name}</td>
-                  <td className="py-2 px-4">{row.position}</td>
-                  <td className="py-2 px-4">
-                    <span className={`px-2 py-1 rounded text-xs ${
-                      row.status === 'Hired' ? 'bg-green-100 text-green-600' :
-                      row.status === 'Interview' ? 'bg-yellow-100 text-yellow-600' :
-                      'bg-gray-100 text-gray-600'
+                <tr key={index} className="border-t hover:bg-gray-50">
+                  <td className="py-3 px-4">{row.name}</td>
+                  <td className="py-3 px-4">{row.position}</td>
+                  <td className="py-3 px-4">
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      row.status === 'Hired' ? 'bg-green-100 text-green-700' :
+                      row.status === 'Interview' ? 'bg-yellow-100 text-yellow-700' :
+                      row.status === 'Screening' ? 'bg-blue-100 text-blue-700' :
+                      'bg-gray-100 text-gray-700'
                     }`}>
                       {row.status}
                     </span>
                   </td>
-                  <td className="py-2 px-4">{row.date}</td>
-                  <td className="py-2 px-4">
-                    <button className="text-purple-600 hover:text-purple-700">View</button>
-                  </td>
+                  <td className="py-3 px-4 text-gray-600">{row.date}</td>
                 </tr>
               ))}
             </tbody>
