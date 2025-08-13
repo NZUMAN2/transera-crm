@@ -10,25 +10,18 @@ import {
   RiBuilding2Line,
   RiTrophyLine,
   RiArrowUpLine,
-  RiArrowDownLine
+  RiArrowDownLine,
+  RiTimeLine,
+  RiCheckLine
 } from 'react-icons/ri'
-import { createClient } from '@/lib/supabase/client'
 
 export default function ModernDashboard() {
-  const [stats, setStats] = useState({
+  const [stats] = useState({
     candidates: 326,
     jobs: 47,
     clients: 28,
-    placements: 12,
-    revenue: 2320000
+    placements: 12
   })
-
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    // Simulate loading
-    setTimeout(() => setIsLoading(false), 1000)
-  }, [])
 
   const statCards = [
     {
@@ -51,8 +44,8 @@ export default function ModernDashboard() {
       title: 'Clients',
       value: stats.clients,
       icon: RiBuilding2Line,
-      change: '-2%',
-      trend: 'down',
+      change: '+5%',
+      trend: 'up',
       color: 'from-green-500 to-teal-500'
     },
     {
@@ -66,19 +59,19 @@ export default function ModernDashboard() {
   ]
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 p-6">
       {/* Welcome Header */}
       <motion.div
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        className="bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 rounded-2xl p-8 text-white"
-        style={{
-          backgroundSize: '200% 100%',
-          animation: 'gradient 8s linear infinite'
-        }}
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative overflow-hidden bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 rounded-2xl p-8 text-white shadow-xl"
       >
-        <h1 className="text-3xl font-bold mb-2">Welcome back to TransEra CRM!</h1>
-        <p className="text-purple-100">Here's what's happening with your recruitment today.</p>
+        <div className="relative z-10">
+          <h1 className="text-4xl font-bold mb-2">Welcome to TransEra CRM!</h1>
+          <p className="text-purple-100 text-lg">Here's what's happening with your recruitment today.</p>
+        </div>
+        <div className="absolute top-0 right-0 -mt-8 -mr-8 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
+        <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
       </motion.div>
 
       {/* Stats Grid */}
@@ -87,10 +80,10 @@ export default function ModernDashboard() {
           <AnimatedCard key={stat.title} delay={index * 0.1}>
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-lg bg-gradient-to-br ${stat.color}`}>
+                <div className={`p-3 rounded-xl bg-gradient-to-br ${stat.color} shadow-lg`}>
                   <stat.icon className="h-6 w-6 text-white" />
                 </div>
-                <div className={`flex items-center space-x-1 text-sm ${
+                <div className={`flex items-center space-x-1 text-sm font-semibold ${
                   stat.trend === 'up' ? 'text-green-600' : 'text-red-600'
                 }`}>
                   {stat.trend === 'up' ? (
@@ -103,11 +96,8 @@ export default function ModernDashboard() {
               </div>
               <div>
                 <p className="text-gray-600 text-sm mb-1">{stat.title}</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stat.title === 'Revenue' 
-                    ? `R${(stat.value / 1000).toFixed(0)}K`
-                    : stat.value.toLocaleString()
-                  }
+                <p className="text-3xl font-bold text-gray-900">
+                  {stat.value.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -115,40 +105,46 @@ export default function ModernDashboard() {
         ))}
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex flex-wrap gap-4">
-        <ModernButton variant="primary">
-          Add New Candidate
-        </ModernButton>
-        <ModernButton variant="secondary">
-          Post New Job
-        </ModernButton>
-        <ModernButton variant="ghost">
-          View Reports
-        </ModernButton>
-      </div>
+      {/* Quick Actions */}
+      <AnimatedCard delay={0.4}>
+        <div className="p-6">
+          <h2 className="text-xl font-bold mb-4 gradient-text">Quick Actions</h2>
+          <div className="flex flex-wrap gap-4">
+            <ModernButton variant="primary">
+              <RiUserLine className="mr-2" />
+              Add Candidate
+            </ModernButton>
+            <ModernButton variant="secondary">
+              <RiBriefcaseLine className="mr-2" />
+              Post Job
+            </ModernButton>
+            <ModernButton variant="ghost">
+              <RiBuilding2Line className="mr-2" />
+              Add Client
+            </ModernButton>
+          </div>
+        </div>
+      </AnimatedCard>
 
-      {/* Activity Timeline */}
+      {/* Recent Activity */}
       <AnimatedCard delay={0.5}>
         <div className="p-6">
-          <h2 className="text-xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-            Recent Activity
-          </h2>
+          <h2 className="text-xl font-bold mb-4 gradient-text">Recent Activity</h2>
           <div className="space-y-4">
             {[
-              { text: 'New candidate added', time: '2 hours ago', color: 'bg-green-500' },
-              { text: 'Job posted to LinkedIn', time: '4 hours ago', color: 'bg-blue-500' },
-              { text: 'Interview scheduled', time: '6 hours ago', color: 'bg-purple-500' },
+              { icon: RiCheckLine, text: 'New candidate added', time: '2 hours ago', color: 'text-green-500' },
+              { icon: RiBriefcaseLine, text: 'Job posted to LinkedIn', time: '4 hours ago', color: 'text-blue-500' },
+              { icon: RiTimeLine, text: 'Interview scheduled', time: '6 hours ago', color: 'text-purple-500' },
             ].map((activity, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.6 + index * 0.1 }}
-                className="flex items-center space-x-3"
+                className="flex items-center space-x-4 p-3 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                <div className={`h-2 w-2 rounded-full ${activity.color} animate-pulse`} />
-                <span className="text-gray-700">{activity.text}</span>
+                <activity.icon className={`h-5 w-5 ${activity.color}`} />
+                <span className="flex-1 text-gray-700">{activity.text}</span>
                 <span className="text-gray-400 text-sm">{activity.time}</span>
               </motion.div>
             ))}
