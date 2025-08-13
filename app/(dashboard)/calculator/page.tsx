@@ -1,153 +1,133 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Button } from '@/components/ui/button'
-import { Calculator, DollarSign } from 'lucide-react'
+import { useState } from 'react'
+import { motion } from 'framer-motion'
+import { 
+  RiCalculatorLine,
+  RiPercentLine,
+  RiMoneyDollarCircleLine
+} from 'react-icons/ri'
 
-export default function FeeCalculatorPage() {
-  const [amount, setAmount] = useState('')
-  const [percentage, setPercentage] = useState('12')
-  const [result, setResult] = useState<{
-    fee: number
-    vat: number
-    total: number
-  } | null>(null)
-
-  // Auto-calculate when values change
-  useEffect(() => {
-    if (amount && percentage) {
-      calculateFee()
-    }
-  }, [amount, percentage])
+export default function CalculatorPage() {
+  const [salary, setSalary] = useState('')
+  const [percentage, setPercentage] = useState('20')
+  const [fee, setFee] = useState(0)
 
   const calculateFee = () => {
-    const baseAmount = parseFloat(amount) || 0
-    const feePercentage = parseFloat(percentage) / 100
-    
-    const fee = baseAmount * feePercentage
-    const vat = fee * 0.15 // 15% VAT
-    const total = fee + vat
-
-    setResult({
-      fee,
-      vat,
-      total
-    })
-  }
-
-  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/[^0-9.]/g, '')
-    setAmount(value)
+    const salaryNum = parseFloat(salary) || 0
+    const percentNum = parseFloat(percentage) || 0
+    const calculatedFee = (salaryNum * percentNum) / 100
+    setFee(calculatedFee)
   }
 
   return (
-    <div className="container mx-auto py-6">
-      <h1 className="text-3xl font-bold mb-6">Fee Calculator</h1>
-      
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calculator className="h-5 w-5" />
-              Calculate Placement Fee
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="amount">Base Salary (Annual)</Label>
-              <Input
-                id="amount"
-                type="text"
-                placeholder="e.g., 500000"
-                value={amount}
-                onChange={handleAmountChange}
-                className="mt-1"
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="percentage">Commission Rate (%)</Label>
-              <select
-                id="percentage"
-                className="w-full mt-1 p-2 border rounded-md bg-white"
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+          Fee Calculator 💰
+        </h1>
+        <p className="text-gray-600 mt-1">Calculate recruitment fees quickly</p>
+      </div>
+
+      {/* Calculator Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white rounded-xl p-8 shadow-sm border border-gray-200 max-w-2xl"
+      >
+        <div className="space-y-6">
+          {/* Salary Input */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <RiMoneyDollarCircleLine className="inline mr-2" />
+              Annual Salary
+            </label>
+            <input
+              type="number"
+              value={salary}
+              onChange={(e) => setSalary(e.target.value)}
+              placeholder="e.g. 100000"
+              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 text-lg"
+            />
+          </div>
+
+          {/* Percentage Input */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <RiPercentLine className="inline mr-2" />
+              Fee Percentage
+            </label>
+            <div className="flex gap-2">
+              {['15', '20', '25', '30'].map(percent => (
+                <button
+                  key={percent}
+                  onClick={() => setPercentage(percent)}
+                  className={`px-4 py-2 rounded-lg transition-all ${
+                    percentage === percent
+                      ? 'bg-purple-500 text-white'
+                      : 'bg-gray-100 hover:bg-gray-200'
+                  }`}
+                >
+                  {percent}%
+                </button>
+              ))}
+              <input
+                type="number"
                 value={percentage}
                 onChange={(e) => setPercentage(e.target.value)}
-              >
-                <option value="8">8% - Contract Rate</option>
-                <option value="10">10% - Volume Rate</option>
-                <option value="12">12% - Standard Rate (TransEra)</option>
-                <option value="15">15% - Premium Rate</option>
-              </select>
+                className="px-4 py-2 border rounded-lg w-24"
+                placeholder="Custom"
+              />
             </div>
-            
-            <Button 
-              onClick={calculateFee} 
-              className="w-full bg-purple-600 hover:bg-purple-700"
+          </div>
+
+          {/* Calculate Button */}
+          <button
+            onClick={calculateFee}
+            className="w-full py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold text-lg hover:opacity-90 transition-all"
+          >
+            <RiCalculatorLine className="inline mr-2" />
+            Calculate Fee
+          </button>
+
+          {/* Result */}
+          {fee > 0 && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-6 text-center"
             >
-              Calculate Fee
-            </Button>
-          </CardContent>
-        </Card>
+              <p className="text-sm text-gray-600 mb-2">Recruitment Fee</p>
+              <p className="text-4xl font-bold text-purple-600">
+                ${fee.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </p>
+            </motion.div>
+          )}
+        </div>
+      </motion.div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5" />
-              Fee Calculation
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span>Package Amount:</span>
-                <span className="font-semibold">
-                  R {amount ? parseFloat(amount).toLocaleString('en-ZA') : '0'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Commission ({percentage}%):</span>
-                <span className="font-semibold">
-                  R {result ? result.fee.toLocaleString('en-ZA') : '0'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>VAT (15%):</span>
-                <span className="font-semibold">
-                  R {result ? result.vat.toLocaleString('en-ZA') : '0'}
-                </span>
-              </div>
-              <div className="flex justify-between pt-3 border-t text-lg font-bold">
-                <span>Total Invoice:</span>
-                <span className="text-purple-600">
-                  R {result ? result.total.toLocaleString('en-ZA') : '0'}
-                </span>
-              </div>
-            </div>
-
-            {result && result.total > 0 && (
-              <div className="mt-6 p-4 bg-gray-50 rounded">
-                <h4 className="font-semibold mb-2">Monthly Projection</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>Consultant Commission (40%):</span>
-                    <span className="font-semibold text-green-600">
-                      R {(result.fee * 0.4).toLocaleString('en-ZA')}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Company Revenue (60%):</span>
-                    <span className="font-semibold text-green-600">
-                      R {(result.fee * 0.6).toLocaleString('en-ZA')}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      {/* Quick Reference */}
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+        <h3 className="font-bold text-lg mb-4">Fee Structure Reference 📋</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <h4 className="font-semibold mb-2">Standard Roles</h4>
+            <ul className="text-sm text-gray-600 space-y-1">
+              <li>• Junior positions: 15-18%</li>
+              <li>• Mid-level positions: 18-22%</li>
+              <li>• Senior positions: 20-25%</li>
+            </ul>
+          </div>
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <h4 className="font-semibold mb-2">Executive Roles</h4>
+            <ul className="text-sm text-gray-600 space-y-1">
+              <li>• Director level: 25-30%</li>
+              <li>• VP level: 30-33%</li>
+              <li>• C-Suite: 33-35%</li>
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
   )

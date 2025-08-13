@@ -1,74 +1,71 @@
-export const dynamic = 'force-dynamic'
+'use client'
 
-export default async function EmailPage() {
+import { useState } from 'react'
+import { motion } from 'framer-motion'
+import { RiMailLine, RiEditLine, RiDeleteBinLine } from 'react-icons/ri'
+
+export default function EmailPage() {
+  const [templates] = useState([
+    { id: 1, name: 'Initial Outreach', category: 'Candidate', uses: 245 },
+    { id: 2, name: 'Interview Invitation', category: 'Candidate', uses: 189 },
+    { id: 3, name: 'Job Offer', category: 'Candidate', uses: 76 },
+    { id: 4, name: 'New Opening', category: 'Client', uses: 134 },
+    { id: 5, name: 'Candidate Submission', category: 'Client', uses: 92 }
+  ])
+
   return (
-    <div className="p-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Email Inbox</h1>
-        <p className="text-gray-600 mt-1">Manage email templates and communications</p>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            Email Templates 📧
+          </h1>
+          <p className="text-gray-600 mt-1">Manage your email templates</p>
+        </div>
+        <button className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg">
+          + New Template
+        </button>
       </div>
 
-      <div className="bg-white rounded-lg shadow">
-        <div className="border-b">
-          <div className="flex space-x-8 px-6">
-            <button className="py-3 border-b-2 border-purple-600 text-purple-600 font-medium">
-              All Mail
-            </button>
-            <button className="py-3 text-gray-500 hover:text-gray-700">
-              Candidates
-            </button>
-            <button className="py-3 text-gray-500 hover:text-gray-700">
-              Clients
-            </button>
-            <button className="py-3 text-gray-500 hover:text-gray-700">
-              Unread
-            </button>
-          </div>
-        </div>
-
-        <div className="p-4 border-b flex justify-end space-x-2">
-          <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
-            🔄 Refresh
-          </button>
-          <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
-            ✏️ Compose
-          </button>
-        </div>
-
-        <div className="divide-y">
-          <div className="p-6 text-center text-gray-500">
-            <div className="mb-4">
-              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <p className="text-lg font-medium">No emails found</p>
-            <p className="text-sm mt-2">Email integration coming soon</p>
-          </div>
-        </div>
-
-        <div className="p-6 border-t">
-          <h3 className="text-lg font-semibold mb-4">Email Templates</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="border rounded-lg p-4 hover:bg-gray-50">
-              <h4 className="font-medium text-gray-900">Initial Candidate Outreach</h4>
-              <p className="text-sm text-gray-600 mt-1">Exciting Opportunity at {`{company_name}`}</p>
-              <div className="mt-2">
-                <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
-                  candidate
-                </span>
-              </div>
-            </div>
-            <div className="border rounded-lg p-4 hover:bg-gray-50">
-              <h4 className="font-medium text-gray-900">Interview Confirmation</h4>
-              <p className="text-sm text-gray-600 mt-1">Interview Scheduled - {`{job_title}`} at {`{company_name}`}</p>
-              <div className="mt-2">
-                <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
-                  interview
-                </span>
-              </div>
-            </div>
-          </div>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                <th className="text-left py-3 px-6">Template Name</th>
+                <th className="text-left py-3 px-6">Category</th>
+                <th className="text-left py-3 px-6">Uses</th>
+                <th className="text-left py-3 px-6">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {templates.map(template => (
+                <tr key={template.id} className="border-b hover:bg-gray-50">
+                  <td className="py-3 px-6 font-medium">{template.name}</td>
+                  <td className="py-3 px-6">
+                    <span className={`px-2 py-1 text-xs rounded-full ${
+                      template.category === 'Candidate' 
+                        ? 'bg-blue-100 text-blue-600' 
+                        : 'bg-green-100 text-green-600'
+                    }`}>
+                      {template.category}
+                    </span>
+                  </td>
+                  <td className="py-3 px-6">{template.uses}</td>
+                  <td className="py-3 px-6">
+                    <div className="flex gap-2">
+                      <button className="p-1 hover:bg-gray-100 rounded">
+                        <RiEditLine className="text-gray-600" />
+                      </button>
+                      <button className="p-1 hover:bg-gray-100 rounded">
+                        <RiDeleteBinLine className="text-red-600" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
