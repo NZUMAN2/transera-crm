@@ -1,143 +1,160 @@
-import { createClient } from '@/lib/supabase/server'
+'use client'
 
-export const dynamic = 'force-dynamic'
+import { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
+import { AnimatedCard } from '@/components/ui/animated-card'
+import { ModernButton } from '@/components/ui/modern-button'
+import { 
+  RiUserLine, 
+  RiBriefcaseLine, 
+  RiBuilding2Line,
+  RiTrophyLine,
+  RiArrowUpLine,
+  RiArrowDownLine
+} from 'react-icons/ri'
+import { createClient } from '@/lib/supabase/client'
 
-export default async function DashboardPage() {
-  const supabase = createClient()
-  
-  const [
-    { count: jobsCount },
-    { count: candidatesCount },
-    { count: clientsCount }
-  ] = await Promise.all([
-    supabase.from('jobs').select('*', { count: 'exact', head: true }),
-    supabase.from('candidates').select('*', { count: 'exact', head: true }),
-    supabase.from('clients').select('*', { count: 'exact', head: true })
-  ])
+export default function ModernDashboard() {
+  const [stats, setStats] = useState({
+    candidates: 326,
+    jobs: 47,
+    clients: 28,
+    placements: 12,
+    revenue: 2320000
+  })
+
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    // Simulate loading
+    setTimeout(() => setIsLoading(false), 1000)
+  }, [])
+
+  const statCards = [
+    {
+      title: 'Total Candidates',
+      value: stats.candidates,
+      icon: RiUserLine,
+      change: '+12%',
+      trend: 'up',
+      color: 'from-purple-500 to-pink-500'
+    },
+    {
+      title: 'Active Jobs',
+      value: stats.jobs,
+      icon: RiBriefcaseLine,
+      change: '+8%',
+      trend: 'up',
+      color: 'from-blue-500 to-cyan-500'
+    },
+    {
+      title: 'Clients',
+      value: stats.clients,
+      icon: RiBuilding2Line,
+      change: '-2%',
+      trend: 'down',
+      color: 'from-green-500 to-teal-500'
+    },
+    {
+      title: 'Placements',
+      value: stats.placements,
+      icon: RiTrophyLine,
+      change: '+23%',
+      trend: 'up',
+      color: 'from-orange-500 to-red-500'
+    }
+  ]
 
   return (
-    <div className="p-8">
-      <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg p-6 mb-8 text-white">
-        <h1 className="text-3xl font-bold mb-2">Welcome back!</h1>
-        <p className="opacity-90">Here's what's happening with your recruitment pipeline today.</p>
-      </div>
+    <div className="space-y-8">
+      {/* Welcome Header */}
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        className="bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 rounded-2xl p-8 text-white"
+        style={{
+          backgroundSize: '200% 100%',
+          animation: 'gradient 8s linear infinite'
+        }}
+      >
+        <h1 className="text-3xl font-bold mb-2">Welcome back to TransEra CRM!</h1>
+        <p className="text-purple-100">Here's what's happening with your recruitment today.</p>
+      </motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-gray-600">Active Jobs</span>
-            <span className="text-2xl">💼</span>
-          </div>
-          <div className="text-3xl font-bold">{jobsCount || 0}</div>
-          <div className="text-sm text-green-600 mt-2">+12% from last month</div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-gray-600">Total Candidates</span>
-            <span className="text-2xl">👥</span>
-          </div>
-          <div className="text-3xl font-bold">{candidatesCount || 0}</div>
-          <div className="text-sm text-green-600 mt-2">+8% from last month</div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-gray-600">Active Clients</span>
-            <span className="text-2xl">🏢</span>
-          </div>
-          <div className="text-3xl font-bold">{clientsCount || 0}</div>
-          <div className="text-sm text-green-600 mt-2">+5% from last month</div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-gray-600">Revenue MTD</span>
-            <span className="text-2xl">💰</span>
-          </div>
-          <div className="text-3xl font-bold">R485K</div>
-          <div className="text-sm text-green-600 mt-2">+15% from last month</div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition cursor-pointer">
-          <div className="text-purple-600 text-3xl mb-4">💼</div>
-          <h3 className="font-semibold">Add New Job</h3>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition cursor-pointer">
-          <div className="text-blue-600 text-3xl mb-4">👤</div>
-          <h3 className="font-semibold">Add Candidate</h3>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition cursor-pointer">
-          <div className="text-green-600 text-3xl mb-4">🏢</div>
-          <h3 className="font-semibold">Add Client</h3>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition cursor-pointer">
-          <div className="text-orange-600 text-3xl mb-4">📊</div>
-          <h3 className="font-semibold">View Reports</h3>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
-          <div className="space-y-3">
-            <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {statCards.map((stat, index) => (
+          <AnimatedCard key={stat.title} delay={index * 0.1}>
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className={`p-3 rounded-lg bg-gradient-to-br ${stat.color}`}>
+                  <stat.icon className="h-6 w-6 text-white" />
+                </div>
+                <div className={`flex items-center space-x-1 text-sm ${
+                  stat.trend === 'up' ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {stat.trend === 'up' ? (
+                    <RiArrowUpLine className="h-4 w-4" />
+                  ) : (
+                    <RiArrowDownLine className="h-4 w-4" />
+                  )}
+                  <span>{stat.change}</span>
+                </div>
+              </div>
               <div>
-                <p className="text-sm">New candidate added</p>
-                <p className="text-xs text-gray-500">John Doe - Senior Developer</p>
-                <p className="text-xs text-gray-400">2 hours ago</p>
+                <p className="text-gray-600 text-sm mb-1">{stat.title}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stat.title === 'Revenue' 
+                    ? `R${(stat.value / 1000).toFixed(0)}K`
+                    : stat.value.toLocaleString()
+                  }
+                </p>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <div>
-                <p className="text-sm">Job posted</p>
-                <p className="text-xs text-gray-500">UI/UX Designer at TechCorp</p>
-                <p className="text-xs text-gray-400">5 hours ago</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold mb-4">Pipeline Overview</h2>
-          <div className="space-y-3">
-            <div>
-              <div className="flex justify-between mb-1">
-                <span className="text-sm">Sourcing</span>
-                <span className="text-sm">15 candidates</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-purple-600 h-2 rounded-full" style={{width: '60%'}}></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between mb-1">
-                <span className="text-sm">Screening</span>
-                <span className="text-sm">8 candidates</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-blue-600 h-2 rounded-full" style={{width: '40%'}}></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between mb-1">
-                <span className="text-sm">Interview</span>
-                <span className="text-sm">5 candidates</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-green-600 h-2 rounded-full" style={{width: '25%'}}></div>
-              </div>
-            </div>
-          </div>
-        </div>
+          </AnimatedCard>
+        ))}
       </div>
+
+      {/* Action Buttons */}
+      <div className="flex flex-wrap gap-4">
+        <ModernButton variant="primary">
+          Add New Candidate
+        </ModernButton>
+        <ModernButton variant="secondary">
+          Post New Job
+        </ModernButton>
+        <ModernButton variant="ghost">
+          View Reports
+        </ModernButton>
+      </div>
+
+      {/* Activity Timeline */}
+      <AnimatedCard delay={0.5}>
+        <div className="p-6">
+          <h2 className="text-xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+            Recent Activity
+          </h2>
+          <div className="space-y-4">
+            {[
+              { text: 'New candidate added', time: '2 hours ago', color: 'bg-green-500' },
+              { text: 'Job posted to LinkedIn', time: '4 hours ago', color: 'bg-blue-500' },
+              { text: 'Interview scheduled', time: '6 hours ago', color: 'bg-purple-500' },
+            ].map((activity, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.6 + index * 0.1 }}
+                className="flex items-center space-x-3"
+              >
+                <div className={`h-2 w-2 rounded-full ${activity.color} animate-pulse`} />
+                <span className="text-gray-700">{activity.text}</span>
+                <span className="text-gray-400 text-sm">{activity.time}</span>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </AnimatedCard>
     </div>
   )
 }
