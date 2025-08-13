@@ -1,177 +1,69 @@
-import { createClient } from '@/lib/supabase/server'
+'use client'
 
-export const dynamic = 'force-dynamic'
+import { useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { MapPin, Building, TrendingUp } from 'lucide-react'
 
-export default async function ReportsPage() {
-  const supabase = createClient()
-
-  // Get statistics
-  const { count: totalJobs } = await supabase
-    .from('jobs')
-    .select('*', { count: 'exact', head: true })
-
-  const { count: openJobs } = await supabase
-    .from('jobs')
-    .select('*', { count: 'exact', head: true })
-    .eq('status', 'open')
-
-  const { count: totalCandidates } = await supabase
-    .from('candidates')
-    .select('*', { count: 'exact', head: true })
-
-  const { count: activeCandidates } = await supabase
-    .from('candidates')
-    .select('*', { count: 'exact', head: true })
-    .eq('status', 'active')
-
-  const { count: totalClients } = await supabase
-    .from('clients')
-    .select('*', { count: 'exact', head: true })
-
-  const { count: activeClients } = await supabase
-    .from('clients')
-    .select('*', { count: 'exact', head: true })
-    .eq('status', 'active')
+export default function RegionalReportsPage() {
+  const [regions] = useState([
+    { name: 'Western Cape', clients: 12, placements: 45, revenue: 850000 },
+    { name: 'Gauteng', clients: 25, placements: 78, revenue: 1500000 },
+    { name: 'KwaZulu-Natal', clients: 8, placements: 23, revenue: 450000 },
+    { name: 'Eastern Cape', clients: 5, placements: 12, revenue: 250000 }
+  ])
 
   return (
-    <div className="p-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Reports & Analytics</h1>
-        <p className="text-gray-600 mt-1">Generate insights and export reports</p>
+    <div className="container mx-auto py-6">
+      <h1 className="text-3xl font-bold mb-6">Regional Reports</h1>
+      
+      <div className="grid gap-6 md:grid-cols-2">
+        {regions.map((region) => (
+          <Card key={region.name}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                {region.name}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Active Clients</span>
+                  <span className="font-semibold">{region.clients}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Placements</span>
+                  <span className="font-semibold">{region.placements}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Revenue</span>
+                  <span className="font-semibold">
+                    R{(region.revenue / 1000).toFixed(0)}K
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      {/* Report Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-              <span className="text-2xl">📊</span>
-            </div>
-          </div>
-          <h3 className="text-sm font-medium text-gray-600">Monthly Performance Report</h3>
-          <p className="text-xs text-gray-500 mt-1">Generate comprehensive monthly metrics</p>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <span className="text-2xl">💰</span>
-            </div>
-          </div>
-          <h3 className="text-sm font-medium text-gray-600">Revenue Analytics</h3>
-          <p className="text-xs text-gray-500 mt-1">Track revenue trends and forecasts</p>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <span className="text-2xl">👤</span>
-            </div>
-          </div>
-          <h3 className="text-sm font-medium text-gray-600">Consultant Performance</h3>
-          <p className="text-xs text-gray-500 mt-1">Individual consultant metrics</p>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-              <span className="text-2xl">📈</span>
-            </div>
-          </div>
-          <h3 className="text-sm font-medium text-gray-600">Pipeline Analysis</h3>
-          <p className="text-xs text-gray-500 mt-1">Recruitment pipeline health</p>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-pink-100 rounded-lg flex items-center justify-center">
-              <span className="text-2xl">⏱️</span>
-            </div>
-          </div>
-          <h3 className="text-sm font-medium text-gray-600">Time-to-Fill Report</h3>
-          <p className="text-xs text-gray-500 mt-1">Average time to fill positions</p>
-        </div>
-      </div>
-
-      {/* Quick Statistics */}
-      <div className="bg-white rounded-lg shadow p-6 mb-8">
-        <h2 className="text-lg font-semibold mb-4">Quick Statistics</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          <div className="text-center">
-            <p className="text-sm text-gray-600">Avg. Time to Fill</p>
-            <p className="text-3xl font-bold text-purple-600">23 days</p>
-          </div>
-          <div className="text-center">
-            <p className="text-sm text-gray-600">Placement Rate</p>
-            <p className="text-3xl font-bold text-green-600">78%</p>
-          </div>
-          <div className="text-center">
-            <p className="text-sm text-gray-600">Client Satisfaction</p>
-            <p className="text-3xl font-bold text-blue-600">94%</p>
-          </div>
-          <div className="text-center">
-            <p className="text-sm text-gray-600">Active Searches</p>
-            <p className="text-3xl font-bold text-orange-600">{openJobs || 0}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">Jobs Overview</h3>
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Multi-Region Clients</CardTitle>
+        </CardHeader>
+        <CardContent>
           <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-gray-600">Total Jobs</span>
-              <span className="font-semibold">{totalJobs || 0}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Open Positions</span>
-              <span className="font-semibold text-green-600">{openJobs || 0}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Fill Rate</span>
-              <span className="font-semibold">78%</span>
+            <div className="flex items-center justify-between p-3 border rounded">
+              <div className="flex items-center gap-3">
+                <Building className="h-5 w-5" />
+                <span className="font-medium">Woolworths</span>
+              </div>
+              <span className="text-sm text-muted-foreground">WC, KZN, EC</span>
             </div>
           </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">Candidates Overview</h3>
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-gray-600">Total Candidates</span>
-              <span className="font-semibold">{totalCandidates || 0}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Active Candidates</span>
-              <span className="font-semibold text-green-600">{activeCandidates || 0}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Placement Rate</span>
-              <span className="font-semibold">32%</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">Clients Overview</h3>
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-gray-600">Total Clients</span>
-              <span className="font-semibold">{totalClients || 0}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Active Clients</span>
-              <span className="font-semibold text-green-600">{activeClients || 0}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Retention Rate</span>
-              <span className="font-semibold">92%</span>
-            </div>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

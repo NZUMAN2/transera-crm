@@ -1,16 +1,6 @@
-import { createClient } from '@/lib/supabase/server'
-
 export const dynamic = 'force-dynamic'
 
 export default async function EmailPage() {
-  const supabase = createClient()
-
-  // Get email templates
-  const { data: templates } = await supabase
-    .from('email_templates')
-    .select('*')
-    .order('created_at', { ascending: false })
-
   return (
     <div className="p-8">
       <div className="mb-6">
@@ -19,7 +9,6 @@ export default async function EmailPage() {
       </div>
 
       <div className="bg-white rounded-lg shadow">
-        {/* Email Tabs */}
         <div className="border-b">
           <div className="flex space-x-8 px-6">
             <button className="py-3 border-b-2 border-purple-600 text-purple-600 font-medium">
@@ -37,7 +26,6 @@ export default async function EmailPage() {
           </div>
         </div>
 
-        {/* Actions Bar */}
         <div className="p-4 border-b flex justify-end space-x-2">
           <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
             🔄 Refresh
@@ -47,7 +35,6 @@ export default async function EmailPage() {
           </button>
         </div>
 
-        {/* Email List */}
         <div className="divide-y">
           <div className="p-6 text-center text-gray-500">
             <div className="mb-4">
@@ -60,21 +47,27 @@ export default async function EmailPage() {
           </div>
         </div>
 
-        {/* Templates Section */}
         <div className="p-6 border-t">
           <h3 className="text-lg font-semibold mb-4">Email Templates</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {templates?.map((template) => (
-              <div key={template.id} className="border rounded-lg p-4 hover:bg-gray-50">
-                <h4 className="font-medium text-gray-900">{template.name}</h4>
-                <p className="text-sm text-gray-600 mt-1">{template.subject}</p>
-                <div className="mt-2">
-                  <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
-                    {template.type}
-                  </span>
-                </div>
+            <div className="border rounded-lg p-4 hover:bg-gray-50">
+              <h4 className="font-medium text-gray-900">Initial Candidate Outreach</h4>
+              <p className="text-sm text-gray-600 mt-1">Exciting Opportunity at {`{company_name}`}</p>
+              <div className="mt-2">
+                <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
+                  candidate
+                </span>
               </div>
-            ))}
+            </div>
+            <div className="border rounded-lg p-4 hover:bg-gray-50">
+              <h4 className="font-medium text-gray-900">Interview Confirmation</h4>
+              <p className="text-sm text-gray-600 mt-1">Interview Scheduled - {`{job_title}`} at {`{company_name}`}</p>
+              <div className="mt-2">
+                <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
+                  interview
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

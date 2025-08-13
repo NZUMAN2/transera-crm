@@ -1,4 +1,5 @@
-import type { Config } from 'tailwindcss'
+// tailwind.config.ts
+import type { Config } from "tailwindcss"
 
 const config: Config = {
   darkMode: ["class"],
@@ -52,16 +53,6 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // TransEra brand colors
-        transera: {
-          purple: '#6B46C1',
-          pink: '#EC4899',
-          darkPurple: '#553C9A',
-          lightPurple: '#9333EA',
-        }
-      },
-      backgroundImage: {
-        'transera-gradient': 'linear-gradient(135deg, #6B46C1 0%, #EC4899 100%)',
       },
       borderRadius: {
         lg: "var(--radius)",
