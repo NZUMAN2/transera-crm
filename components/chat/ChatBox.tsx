@@ -1,291 +1,207 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
 
 export default function ChatBox() {
   const [isOpen, setIsOpen] = useState(false)
   const [message, setMessage] = useState('')
-  const [messages, setMessages] = useState([
-    { id: 1, text: 'Welcome to TransEra Chat! 👋', sender: 'system', time: new Date() },
-    { id: 2, text: 'How can I help you today?', sender: 'system', time: new Date() }
-  ])
-  const [showEmoji, setShowEmoji] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [messages, setMessages] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
+  const [user, setUser] = useState<any>(null)
+  const supabase = createClient()
 
-  const emojis = ['😊', '👍', '❤️', '🎉', '🔥', '✅', '💼', '📧', '📅', '🚀']
+  // Get current user
+  useEffect(() => {
+    getCurrentUser()
+  }, [])
 
-  const toggleChat = () => {
-    setIsOpen(!isOpen)
-    setShowEmoji(false)
-  }
-
-  const sendMessage = () => {
-    if (message.trim() === '') return
-    
-    const newMessage = {
-      id: Date.now(),
-      text: message,
-      sender: 'user',
-      time: new Date()
+  // Load messages when chat opens
+  useEffect(() => {
+    if (isOpen && user) {
+      loadMessages()
+      subscribeToMessages()
     }
-    
-    setMessages(prev => [...prev, newMessage])
-    setMessage('')
-    
-    // Simulate response
-    setTimeout(() => {
-      setMessages(prev => [...prev, {
-        id: Date.now(),
-        text: 'Thanks for your message! I received: "' + message + '"',
-        sender: 'system',
-        time: new Date()
-      }])
-    }, 1000)
+  }, [isOpen, user])
+
+  async function getCurrentUser() {
+    const { data: { user } } = await supabase.auth.getUser()
+    setUser(user)
   }
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      sendMessage()
+  async function loadMessages() {
+    try {
+      // For now, load sample messages since chat tables might not exist
+      setMessages([
+        { id: 1, message_text: 'Welcome to TransEra Chat! 👋', sender_id: 'system' },
+        { id: 2, message_text: 'Messages will be saved once database is configured.', sender_id: 'system' }
+      ])
+      
+      // Uncomment when chat_messages table exists:
+      /*
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .order('created_at', { ascending: true })
+        .limit(50)
+      
+      if (data) {
+        setMessages(data)
+      }
+      */
+    } catch (error) {
+      console.error('Error loading messages:', error)
     }
   }
 
-  const addEmoji = (emoji: string) => {
-    setMessage(prev => prev + emoji)
-    setShowEmoji(false)
+  function subscribeToMessages() {
+    // Uncomment when realtime is configured:
+    /*
+    const channel = supabase
+      .channel('chat-messages')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'chat_messages'
+        },
+        (payload) => {
+          setMessages(current => [...current, payload.new])
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+    */
   }
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setMessages(prev => [...prev, {
+  async function sendMessage() {
+    if (!message.trim() || !user) return
+    
+    setLoading(true)
+    
+    try {
+      // For now, just add to local state
+      const newMessage = {
         id: Date.now(),
-        text: `📎 File attached: ${file.name}`,
-        sender: 'user',
-        time: new Date()
-      }])
+        message_text: message,
+        sender_id: user.id,
+        created_at: new Date().toISOString()
+      }
+      
+      setMessages(current => [...current, newMessage])
+      setMessage('')
+      
+      // Uncomment when chat_messages table exists:
+      /*
+      const { error } = await supabase
+        .from('chat_messages')
+        .insert({
+          message_text: message,
+          sender_id: user.id,
+          conversation_id: 'general' // You'll need to create/select a conversation
+        })
+      
+      if (error) {
+        console.error('Error sending message:', error)
+      }
+      */
+      
+      // Simulate bot response
+      setTimeout(() => {
+        setMessages(current => [...current, {
+          id: Date.now(),
+          message_text: 'Database connection coming soon! For now, messages are temporary.',
+          sender_id: 'system',
+          created_at: new Date().toISOString()
+        }])
+      }, 1000)
+      
+    } catch (error) {
+      console.error('Error:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
   return (
     <>
-      {/* Chat Toggle Button */}
+      {/* Chat Button */}
       <button
-        onClick={toggleChat}
-        style={{
-          position: 'fixed',
-          bottom: '24px',
-          right: '24px',
-          width: '56px',
-          height: '56px',
-          borderRadius: '50%',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          border: 'none',
-          cursor: 'pointer',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-          zIndex: 9999,
-          color: 'white',
-          fontSize: '24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}
-        aria-label="Toggle chat"
+        onClick={() => setIsOpen(!isOpen)}
+        className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full shadow-lg flex items-center justify-center text-white hover:scale-110 transition-transform z-50"
       >
         {isOpen ? '✕' : '💬'}
       </button>
 
-      {/* Chat Box */}
+      {/* Chat Window */}
       {isOpen && (
-        <div 
-          style={{
-            position: 'fixed',
-            bottom: '96px',
-            right: '24px',
-            width: '384px',
-            height: '500px',
-            backgroundColor: 'white',
-            borderRadius: '16px',
-            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)',
-            zIndex: 9998,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            border: '1px solid #e5e7eb'
-          }}
-        >
+        <div className="fixed bottom-24 right-6 w-96 h-[500px] bg-white rounded-2xl shadow-2xl z-40 flex flex-col overflow-hidden border border-gray-200">
+          
           {/* Header */}
-          <div style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            padding: '16px',
-            color: 'white'
-          }}>
-            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>
-              💬 Team Chat
-            </h3>
-            <p style={{ margin: '4px 0 0 0', fontSize: '12px', opacity: 0.9 }}>
-              Always here to help!
+          <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-4 text-white">
+            <h3 className="font-bold text-lg">💬 Team Chat</h3>
+            <p className="text-xs opacity-90">
+              {user ? `Logged in as: ${user.email}` : 'Connecting...'}
             </p>
           </div>
 
-          {/* Messages Container */}
-          <div style={{
-            flex: 1,
-            overflowY: 'auto',
-            padding: '16px',
-            backgroundColor: '#f9fafb'
-          }}>
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
             {messages.map((msg) => (
               <div
                 key={msg.id}
-                style={{
-                  marginBottom: '12px',
-                  display: 'flex',
-                  justifyContent: msg.sender === 'user' ? 'flex-end' : 'flex-start'
-                }}
+                className={`mb-3 flex ${
+                  msg.sender_id === user?.id ? 'justify-end' : 'justify-start'
+                }`}
               >
                 <div
-                  style={{
-                    maxWidth: '70%',
-                    padding: '8px 16px',
-                    borderRadius: '16px',
-                    backgroundColor: msg.sender === 'user' ? '#667eea' : 'white',
-                    color: msg.sender === 'user' ? 'white' : '#374151',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
-                  }}
+                  className={`max-w-[70%] px-4 py-2 rounded-2xl ${
+                    msg.sender_id === user?.id
+                      ? 'bg-purple-500 text-white'
+                      : 'bg-white text-gray-800 border border-gray-200'
+                  }`}
                 >
-                  <div>{msg.text}</div>
-                  <div style={{
-                    fontSize: '10px',
-                    opacity: 0.7,
-                    marginTop: '4px'
-                  }}>
-                    {msg.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </div>
+                  <div>{msg.message_text}</div>
+                  {msg.created_at && (
+                    <div className="text-xs opacity-70 mt-1">
+                      {new Date(msg.created_at).toLocaleTimeString([], { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Emoji Picker */}
-          {showEmoji && (
-            <div style={{
-              position: 'absolute',
-              bottom: '60px',
-              left: '12px',
-              backgroundColor: 'white',
-              border: '1px solid #e5e7eb',
-              borderRadius: '8px',
-              padding: '8px',
-              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-              display: 'flex',
-              gap: '4px',
-              flexWrap: 'wrap',
-              width: '200px'
-            }}>
-              {emojis.map(emoji => (
-                <button
-                  key={emoji}
-                  onClick={() => addEmoji(emoji)}
-                  style={{
-                    border: 'none',
-                    background: 'none',
-                    fontSize: '20px',
-                    cursor: 'pointer',
-                    padding: '4px'
-                  }}
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-          )}
-
           {/* Input Area */}
-          <div style={{
-            padding: '12px',
-            borderTop: '1px solid #e5e7eb',
-            backgroundColor: 'white'
-          }}>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              {/* Emoji Button */}
-              <button
-                onClick={() => setShowEmoji(!showEmoji)}
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  border: 'none',
-                  background: 'none',
-                  cursor: 'pointer',
-                  fontSize: '20px'
-                }}
-                title="Add emoji"
-              >
-                😊
-              </button>
-
-              {/* File Upload Button */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                onChange={handleFileUpload}
-                style={{ display: 'none' }}
-              />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  border: 'none',
-                  background: 'none',
-                  cursor: 'pointer',
-                  fontSize: '20px'
-                }}
-                title="Attach file"
-              >
-                📎
-              </button>
-
-              {/* Message Input */}
+          <div className="p-3 border-t bg-white">
+            <div className="flex gap-2">
               <input
                 type="text"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Type a message..."
-                style={{
-                  flex: 1,
-                  padding: '8px 16px',
-                  backgroundColor: '#f3f4f6',
-                  borderRadius: '24px',
-                  border: '1px solid #e5e7eb',
-                  outline: 'none',
-                  fontSize: '14px'
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    sendMessage()
+                  }
                 }}
+                placeholder={user ? "Type a message..." : "Please login to chat"}
+                disabled={!user || loading}
+                className="flex-1 px-4 py-2 bg-gray-100 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
               />
-
-              {/* Send Button */}
               <button
                 onClick={sendMessage}
-                disabled={!message.trim()}
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '50%',
-                  background: message.trim() 
-                    ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' 
-                    : '#e5e7eb',
-                  border: 'none',
-                  color: 'white',
-                  cursor: message.trim() ? 'pointer' : 'not-allowed',
-                  fontSize: '18px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-                title="Send message"
+                disabled={!user || loading || !message.trim()}
+                className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full hover:opacity-90 transition-opacity font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                ➤
+                {loading ? '...' : 'Send'}
               </button>
             </div>
           </div>
