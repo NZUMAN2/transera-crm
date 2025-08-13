@@ -1,123 +1,204 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import Link from 'next/link'
+import { motion } from 'framer-motion'
+import { RiMailLine, RiLockLine, RiLoginBoxLine, RiSparklingLine } from 'react-icons/ri'
 
 export default function LoginPage() {
-  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const router = useRouter()
 
-  const handleLogin = async (e: React.FormEvent) => {
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
-    setError(null)
     setLoading(true)
+    setError(null)
 
-    try {
-      const supabase = createClient()
-      
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
+    const supabase = createClient()
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
 
-      if (error) {
-        setError(error.message)
-        setLoading(false)
-        return
-      }
-
-      if (data.user) {
-        router.push('/dashboard')
-        router.refresh()
-      }
-    } catch (err) {
-      setError('An unexpected error occurred')
+    if (error) {
+      setError(error.message)
       setLoading(false)
+    } else {
+      router.push('/dashboard')
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-white to-pink-50">
-      <div className="w-full max-w-md bg-white rounded-lg shadow-lg p-8">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50/30 to-blue-50/20 flex items-center justify-center p-4">
+      {/* Decorative Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 rounded-full opacity-20 blur-3xl animate-pulse" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-pink-300 rounded-full opacity-20 blur-3xl animate-pulse" />
+        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-blue-300 rounded-full opacity-10 blur-3xl animate-pulse" />
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="w-full max-w-md"
+      >
+        {/* Logo and Header */}
         <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center">
-              <span className="text-white font-bold text-2xl">TS</span>
-            </div>
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900">Welcome back</h2>
-          <p className="text-gray-600 mt-2">Sign in to your account</p>
-        </div>
-        
-        <form onSubmit={handleLogin} className="space-y-6">
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
-              {error}
-            </div>
-          )}
-          
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-              Email Address
-            </label>
-            <input
-              id="email"
-              type="email"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-          
-          <button 
-            type="submit" 
-            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 px-4 rounded-lg font-medium hover:from-purple-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={loading}
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", duration: 0.5 }}
+            className="inline-flex items-center justify-center w-20 h-20 mb-4"
           >
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
-        
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
-            Don&apos;t have an account?{' '}
-            <Link href="/register" className="text-purple-600 hover:text-purple-700 font-medium">
-              Sign up
-            </Link>
-          </p>
+            <div className="relative">
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-purple-400 via-pink-400 to-blue-400 blur-xl opacity-75" />
+              <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500 via-pink-500 to-blue-500 flex items-center justify-center shadow-2xl">
+                <span className="text-3xl">✨</span>
+              </div>
+            </div>
+          </motion.div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent">
+            Welcome Back! 🎉
+          </h1>
+          <p className="text-purple-600 mt-2">Sign in to TransEra CRM</p>
         </div>
 
-        {/* Temporary test credentials info */}
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-          <p className="text-xs text-gray-600 text-center">
-            Test credentials:<br/>
-            Email: test@transera.co.za<br/>
-            Password: Test123!@#
+        {/* Login Card */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-purple-100"
+        >
+          <form onSubmit={handleLogin} className="space-y-6">
+            {/* Email Input */}
+            <div>
+              <label className="block text-sm font-medium text-purple-700 mb-2">
+                📧 Email Address
+              </label>
+              <div className="relative">
+                <RiMailLine className="absolute left-3 top-3 h-5 w-5 text-purple-400" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-gradient-to-r from-purple-50 to-pink-50 
+                           focus:from-white focus:to-white focus:outline-none focus:ring-2 focus:ring-purple-400 
+                           transition-all duration-200 text-gray-700"
+                  placeholder="your@email.com"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Password Input */}
+            <div>
+              <label className="block text-sm font-medium text-purple-700 mb-2">
+                🔐 Password
+              </label>
+              <div className="relative">
+                <RiLockLine className="absolute left-3 top-3 h-5 w-5 text-purple-400" />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-gradient-to-r from-purple-50 to-pink-50 
+                           focus:from-white focus:to-white focus:outline-none focus:ring-2 focus:ring-purple-400 
+                           transition-all duration-200 text-gray-700"
+                  placeholder="Enter your password"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Remember Me & Forgot Password */}
+            <div className="flex items-center justify-between">
+              <label className="flex items-center">
+                <input type="checkbox" className="rounded border-purple-300 text-purple-600 focus:ring-purple-400" />
+                <span className="ml-2 text-sm text-purple-600">Remember me 💜</span>
+              </label>
+              <Link href="/forgot-password" className="text-sm text-pink-600 hover:text-pink-700">
+                Forgot password? 🤔
+              </Link>
+            </div>
+
+            {/* Error Message */}
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-3 rounded-xl bg-red-50 border border-red-200"
+              >
+                <p className="text-sm text-red-600">⚠️ {error}</p>
+              </motion.div>
+            )}
+
+            {/* Submit Button */}
+            <motion.button
+              type="submit"
+              disabled={loading}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 
+                       text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200 
+                       disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  <RiLoginBoxLine className="h-5 w-5" />
+                  Sign In 🚀
+                </>
+              )}
+            </motion.button>
+          </form>
+
+          {/* Divider */}
+          <div className="mt-6 flex items-center">
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-purple-200 to-transparent"></div>
+            <span className="px-4 text-sm text-purple-400">OR</span>
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-purple-200 to-transparent"></div>
+          </div>
+
+          {/* Sign Up Link */}
+          <div className="mt-6 text-center">
+            <p className="text-sm text-purple-600">
+              Don't have an account? 
+              <Link href="/register" className="ml-1 font-medium text-pink-600 hover:text-pink-700">
+                Sign up here! 🎨
+              </Link>
+            </p>
+          </div>
+        </motion.div>
+
+        {/* Fun Footer */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="mt-8 text-center"
+        >
+          <p className="text-sm text-purple-400">
+            🌟 Making recruitment magical since 2024 🌟
           </p>
-        </div>
-      </div>
+          <div className="mt-2 flex justify-center gap-2">
+            <span className="text-2xl animate-bounce delay-0">💼</span>
+            <span className="text-2xl animate-bounce delay-100">👥</span>
+            <span className="text-2xl animate-bounce delay-200">🏢</span>
+            <span className="text-2xl animate-bounce delay-300">📊</span>
+          </div>
+        </motion.div>
+      </motion.div>
     </div>
   )
 }
