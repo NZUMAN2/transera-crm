@@ -1,156 +1,231 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import { motion } from 'framer-motion'
-import { AnimatedCard } from '@/components/ui/animated-card'
-import { ModernButton } from '@/components/ui/modern-button'
 import { 
   RiUserLine, 
   RiBriefcaseLine, 
   RiBuilding2Line,
-  RiTrophyLine,
-  RiArrowUpLine,
-  RiArrowDownLine,
+  RiTrendingUpLine,
+  RiCalendarLine,
   RiTimeLine,
-  RiCheckLine
+  RiStarLine,
+  RiMoneyDollarCircleLine
 } from 'react-icons/ri'
 
-export default function ModernDashboard() {
-  const [stats] = useState({
+export default function DashboardPage() {
+  const [stats, setStats] = useState({
     candidates: 326,
     jobs: 47,
     clients: 28,
     placements: 12
   })
+  const [recentActivity, setRecentActivity] = useState([
+    { id: 1, type: 'candidate', action: 'New application received', name: 'John Doe', time: '2 hours ago', icon: '👤' },
+    { id: 2, type: 'interview', action: 'Interview scheduled', name: 'Jane Smith', time: '4 hours ago', icon: '📅' },
+    { id: 3, type: 'placement', action: 'Placement confirmed', name: 'Mike Johnson', time: '1 day ago', icon: '✅' },
+    { id: 4, type: 'client', action: 'New job posting', name: 'Tech Corp', time: '2 days ago', icon: '🏢' }
+  ])
+
+  const supabase = createClient()
+
+  useEffect(() => {
+    loadDashboardData()
+  }, [])
+
+  async function loadDashboardData() {
+    // Load real data from Supabase
+    const [candidatesCount, jobsCount, clientsCount] = await Promise.all([
+      supabase.from('candidates').select('*', { count: 'exact', head: true }),
+      supabase.from('jobs').select('*', { count: 'exact', head: true }),
+      supabase.from('clients').select('*', { count: 'exact', head: true })
+    ])
+
+    setStats({
+      candidates: candidatesCount.count || 326,
+      jobs: jobsCount.count || 47,
+      clients: clientsCount.count || 28,
+      placements: 12
+    })
+  }
 
   const statCards = [
     {
       title: 'Total Candidates',
       value: stats.candidates,
-      icon: RiUserLine,
       change: '+12%',
-      trend: 'up',
-      color: 'from-purple-500 to-pink-500'
+      icon: RiUserLine,
+      color: 'from-purple-500 to-pink-500',
+      bgColor: 'bg-purple-50',
+      emoji: '👥'
     },
     {
       title: 'Active Jobs',
       value: stats.jobs,
-      icon: RiBriefcaseLine,
       change: '+8%',
-      trend: 'up',
-      color: 'from-blue-500 to-cyan-500'
+      icon: RiBriefcaseLine,
+      color: 'from-blue-500 to-cyan-500',
+      bgColor: 'bg-blue-50',
+      emoji: '💼'
     },
     {
       title: 'Clients',
       value: stats.clients,
-      icon: RiBuilding2Line,
       change: '+5%',
-      trend: 'up',
-      color: 'from-green-500 to-teal-500'
+      icon: RiBuilding2Line,
+      color: 'from-green-500 to-teal-500',
+      bgColor: 'bg-green-50',
+      emoji: '🏢'
     },
     {
       title: 'Placements',
       value: stats.placements,
-      icon: RiTrophyLine,
-      change: '+23%',
-      trend: 'up',
-      color: 'from-orange-500 to-red-500'
+      change: '+20%',
+      icon: RiStarLine,
+      color: 'from-yellow-500 to-orange-500',
+      bgColor: 'bg-yellow-50',
+      emoji: '🌟'
     }
   ]
 
+  // Monthly placement data for chart
+  const monthlyData = [
+    { month: 'Jan', placements: 8 },
+    { month: 'Feb', placements: 12 },
+    { month: 'Mar', placements: 10 },
+    { month: 'Apr', placements: 15 },
+    { month: 'May', placements: 18 },
+    { month: 'Jun', placements: 14 }
+  ]
+
+  const maxPlacements = Math.max(...monthlyData.map(d => d.placements))
+
   return (
-    <div className="space-y-8 p-6">
-      {/* Welcome Header */}
+    <div className="space-y-6">
+      {/* Welcome Banner */}
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 rounded-2xl p-8 text-white shadow-xl"
+        className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 rounded-2xl p-8 text-white shadow-xl"
       >
-        <div className="relative z-10">
-          <h1 className="text-4xl font-bold mb-2">Welcome to TransEra CRM!</h1>
-          <p className="text-purple-100 text-lg">Here's what's happening with your recruitment today.</p>
-        </div>
-        <div className="absolute top-0 right-0 -mt-8 -mr-8 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
-        <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
+        <h1 className="text-3xl font-bold mb-2">Welcome back! 🎯</h1>
+        <p className="text-purple-100">Here's what's happening with your recruitment today.</p>
       </motion.div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((stat, index) => (
-          <AnimatedCard key={stat.title} delay={index * 0.1}>
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-xl bg-gradient-to-br ${stat.color} shadow-lg`}>
-                  <stat.icon className="h-6 w-6 text-white" />
-                </div>
-                <div className={`flex items-center space-x-1 text-sm font-semibold ${
-                  stat.trend === 'up' ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {stat.trend === 'up' ? (
-                    <RiArrowUpLine className="h-4 w-4" />
-                  ) : (
-                    <RiArrowDownLine className="h-4 w-4" />
-                  )}
-                  <span>{stat.change}</span>
-                </div>
+          <motion.div
+            key={stat.title}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+            whileHover={{ scale: 1.05 }}
+            className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className={`${stat.bgColor} p-3 rounded-lg`}>
+                <span className="text-2xl">{stat.emoji}</span>
               </div>
-              <div>
-                <p className="text-gray-600 text-sm mb-1">{stat.title}</p>
-                <p className="text-3xl font-bold text-gray-900">
-                  {stat.value.toLocaleString()}
-                </p>
-              </div>
+              <span className={`text-sm font-semibold ${
+                stat.change.startsWith('+') ? 'text-green-500' : 'text-red-500'
+              }`}>
+                {stat.change}
+              </span>
             </div>
-          </AnimatedCard>
+            <h3 className="text-3xl font-bold text-gray-800 mb-1">{stat.value}</h3>
+            <p className="text-gray-500 text-sm">{stat.title}</p>
+          </motion.div>
         ))}
       </div>
 
-      {/* Quick Actions */}
-      <AnimatedCard delay={0.4}>
-        <div className="p-6">
-          <h2 className="text-xl font-bold mb-4 gradient-text">Quick Actions</h2>
-          <div className="flex flex-wrap gap-4">
-            <ModernButton variant="primary">
-              <RiUserLine className="mr-2" />
-              Add Candidate
-            </ModernButton>
-            <ModernButton variant="secondary">
-              <RiBriefcaseLine className="mr-2" />
-              Post Job
-            </ModernButton>
-            <ModernButton variant="ghost">
-              <RiBuilding2Line className="mr-2" />
-              Add Client
-            </ModernButton>
+      {/* Charts and Activity Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Monthly Placements Chart */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="bg-white rounded-xl p-6 shadow-sm border border-gray-100"
+        >
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-gray-800">Monthly Placements 📊</h2>
+            <span className="text-sm text-gray-500">Last 6 months</span>
           </div>
-        </div>
-      </AnimatedCard>
-
-      {/* Recent Activity */}
-      <AnimatedCard delay={0.5}>
-        <div className="p-6">
-          <h2 className="text-xl font-bold mb-4 gradient-text">Recent Activity</h2>
+          
           <div className="space-y-4">
-            {[
-              { icon: RiCheckLine, text: 'New candidate added', time: '2 hours ago', color: 'text-green-500' },
-              { icon: RiBriefcaseLine, text: 'Job posted to LinkedIn', time: '4 hours ago', color: 'text-blue-500' },
-              { icon: RiTimeLine, text: 'Interview scheduled', time: '6 hours ago', color: 'text-purple-500' },
-            ].map((activity, index) => (
+            {monthlyData.map((data, index) => (
+              <div key={data.month} className="flex items-center gap-4">
+                <span className="text-sm font-medium text-gray-600 w-12">{data.month}</span>
+                <div className="flex-1 bg-gray-100 rounded-full h-8 overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(data.placements / maxPlacements) * 100}%` }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-end pr-3"
+                  >
+                    <span className="text-white text-xs font-bold">{data.placements}</span>
+                  </motion.div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Recent Activity */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="bg-white rounded-xl p-6 shadow-sm border border-gray-100"
+        >
+          <h2 className="text-xl font-bold text-gray-800 mb-6">Recent Activity 🔥</h2>
+          <div className="space-y-4">
+            {recentActivity.map((activity, index) => (
               <motion.div
-                key={index}
+                key={activity.id}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.6 + index * 0.1 }}
-                className="flex items-center space-x-4 p-3 rounded-lg hover:bg-gray-50 transition-colors"
+                transition={{ delay: index * 0.1 }}
+                className="flex items-start gap-4 p-3 hover:bg-gray-50 rounded-lg transition-colors"
               >
-                <activity.icon className={`h-5 w-5 ${activity.color}`} />
-                <span className="flex-1 text-gray-700">{activity.text}</span>
-                <span className="text-gray-400 text-sm">{activity.time}</span>
+                <span className="text-2xl">{activity.icon}</span>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-800">{activity.action}</p>
+                  <p className="text-xs text-gray-500">{activity.name}</p>
+                </div>
+                <span className="text-xs text-gray-400">{activity.time}</span>
               </motion.div>
             ))}
           </div>
+        </motion.div>
+      </div>
+
+      {/* Quick Actions */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-100"
+      >
+        <h2 className="text-xl font-bold text-gray-800 mb-4">Quick Actions ⚡</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <button className="p-4 bg-white rounded-lg hover:shadow-md transition-all text-center">
+            <span className="text-2xl mb-2 block">➕</span>
+            <span className="text-sm font-medium text-gray-700">Add Candidate</span>
+          </button>
+          <button className="p-4 bg-white rounded-lg hover:shadow-md transition-all text-center">
+            <span className="text-2xl mb-2 block">📝</span>
+            <span className="text-sm font-medium text-gray-700">Post Job</span>
+          </button>
+          <button className="p-4 bg-white rounded-lg hover:shadow-md transition-all text-center">
+            <span className="text-2xl mb-2 block">📅</span>
+            <span className="text-sm font-medium text-gray-700">Schedule Interview</span>
+          </button>
+          <button className="p-4 bg-white rounded-lg hover:shadow-md transition-all text-center">
+            <span className="text-2xl mb-2 block">📊</span>
+            <span className="text-sm font-medium text-gray-700">View Reports</span>
+          </button>
         </div>
-      </AnimatedCard>
+      </motion.div>
     </div>
   )
 }
