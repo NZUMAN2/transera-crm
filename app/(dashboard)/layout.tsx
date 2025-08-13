@@ -42,6 +42,7 @@ import {
 } from 'react-icons/ri'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import ChatBox from '@/components/chat/ChatBox' // ADD THIS IMPORT AT THE TOP
 
 // Main navigation (top bar)
 const mainNavigation = [
@@ -89,6 +90,7 @@ export default function ModernLayout({ children }: { children: React.ReactNode }
   const [sidebarExpanded, setSidebarExpanded] = useState(true)
   const [scrolled, setScrolled] = useState(false)
   const [user, setUser] = useState<any>(null)
+  const [profileDropdown, setProfileDropdown] = useState(false)
   const [notifications, setNotifications] = useState([
     { id: 1, text: '🎉 New candidate application', time: '5 min ago', unread: true },
     { id: 2, text: '📅 Interview scheduled', time: '1 hour ago', unread: true },
@@ -250,7 +252,7 @@ export default function ModernLayout({ children }: { children: React.ReactNode }
                       initial={{ opacity: 0, y: -10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                      className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-purple-100 overflow-hidden"
+                      className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-purple-100 overflow-hidden z-50"
                     >
                       <div className="p-4 bg-gradient-to-r from-purple-100 to-pink-100">
                         <h3 className="font-bold text-purple-800">🎉 Notifications</h3>
@@ -274,17 +276,47 @@ export default function ModernLayout({ children }: { children: React.ReactNode }
               </div>
 
               {/* User Profile */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                className="flex items-center space-x-2 px-3 py-2 rounded-2xl bg-gradient-to-r from-purple-100 via-pink-100 to-blue-100 hover:from-purple-200 hover:via-pink-200 hover:to-blue-200 transition-all"
-              >
-                <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-md">
-                  <span className="text-white text-sm">👤</span>
-                </div>
-                <span className="text-sm font-medium text-purple-700 hidden xl:block">
-                  {user?.email?.split('@')[0] || 'User'}
-                </span>
-              </motion.button>
+              <div className="relative">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  onClick={() => setProfileDropdown(!profileDropdown)}
+                  className="flex items-center space-x-2 px-3 py-2 rounded-2xl bg-gradient-to-r from-purple-100 via-pink-100 to-blue-100 hover:from-purple-200 hover:via-pink-200 hover:to-blue-200 transition-all"
+                >
+                  <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-md">
+                    <span className="text-white text-sm">👤</span>
+                  </div>
+                  <span className="text-sm font-medium text-purple-700 hidden xl:block">
+                    {user?.email?.split('@')[0] || 'User'}
+                  </span>
+                </motion.button>
+
+                {/* Profile Dropdown */}
+                <AnimatePresence>
+                  {profileDropdown && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-50"
+                    >
+                      <div className="p-4 border-b border-gray-200">
+                        <p className="text-sm font-semibold text-gray-900">
+                          {user?.email || 'user@example.com'}
+                        </p>
+                      </div>
+                      <div className="p-2">
+                        <button
+                          onClick={handleSignOut}
+                          className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+                        >
+                          <RiLogoutBoxLine className="h-4 w-4 text-gray-600" />
+                          <span className="text-sm text-gray-700">Sign Out</span>
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
           </div>
         </div>
@@ -431,6 +463,9 @@ export default function ModernLayout({ children }: { children: React.ReactNode }
           </div>
         </motion.div>
       </main>
+
+      {/* CHAT BOX COMPONENT - ADD HERE AT THE END */}
+      <ChatBox />
     </div>
   )
 }
