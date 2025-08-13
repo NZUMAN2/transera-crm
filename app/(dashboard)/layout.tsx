@@ -470,11 +470,6 @@ export default function ModernLayout({ children }: { children: React.ReactNode }
     </div>
   )
 }
-// Add these to the sidebarNavigation array:
-const sidebarNavigation = [
-  { 
-    category: 'Core Features', 
-    emoji: '🎯',
     items: [
       { name: 'Search', href: '/search', icon: RiSearchLine, emoji: '🔍', color: 'from-purple-400 to-pink-400' },
       { name: 'Calendar', href: '/calendar', icon: RiCalendarLine, emoji: '📅', color: 'from-blue-400 to-cyan-400' },

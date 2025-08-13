@@ -1,5 +1,6 @@
 'use client'
 
+import ChatBox from '@/components/chat/ChatBox' 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 

@@ -1,17 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 import { 
   RiSearchLine, 
   RiFilterLine, 
   RiUserLine, 
-  RiBriefcaseLine,
   RiMapPinLine,
   RiMoneyDollarCircleLine,
-  RiTimeLine,
-  RiDownloadLine
+  RiTimeLine
 } from 'react-icons/ri'
 
 export default function SearchPage() {
@@ -28,26 +26,22 @@ export default function SearchPage() {
   const [results, setResults] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
-  const supabase = createClient()
 
-  // Sample data for demonstration
+  // Sample data
   const sampleCandidates = [
     { id: 1, name: 'John Doe', role: 'Software Engineer', location: 'New York', salary: 120000, experience: 5, skills: ['React', 'Node.js'], status: 'available' },
     { id: 2, name: 'Jane Smith', role: 'Product Manager', location: 'San Francisco', salary: 150000, experience: 7, skills: ['Agile', 'Scrum'], status: 'interviewing' },
-    { id: 3, name: 'Mike Johnson', role: 'UI/UX Designer', location: 'Los Angeles', salary: 95000, experience: 3, skills: ['Figma', 'Adobe XD'], status: 'available' },
-    { id: 4, name: 'Sarah Williams', role: 'Data Scientist', location: 'Chicago', salary: 130000, experience: 6, skills: ['Python', 'ML'], status: 'placed' }
+    { id: 3, name: 'Mike Johnson', role: 'UI/UX Designer', location: 'Los Angeles', salary: 95000, experience: 3, skills: ['Figma', 'Adobe XD'], status: 'available' }
   ]
 
   const sampleJobs = [
     { id: 1, title: 'Senior Developer', company: 'Tech Corp', location: 'Remote', salary: '100k-150k', type: 'Full-time', posted: '2 days ago' },
-    { id: 2, title: 'Product Manager', company: 'StartupXYZ', location: 'New York', salary: '120k-180k', type: 'Full-time', posted: '1 week ago' },
-    { id: 3, title: 'UX Designer', company: 'Design Studio', location: 'San Francisco', salary: '90k-120k', type: 'Contract', posted: '3 days ago' }
+    { id: 2, title: 'Product Manager', company: 'StartupXYZ', location: 'New York', salary: '120k-180k', type: 'Full-time', posted: '1 week ago' }
   ]
 
   async function handleSearch() {
     setLoading(true)
     
-    // Simulate search with filters
     setTimeout(() => {
       if (searchType === 'candidates') {
         let filtered = sampleCandidates
@@ -65,14 +59,6 @@ export default function SearchPage() {
           )
         }
         
-        if (filters.minSalary) {
-          filtered = filtered.filter(c => c.salary >= parseInt(filters.minSalary))
-        }
-        
-        if (filters.status !== 'all') {
-          filtered = filtered.filter(c => c.status === filters.status)
-        }
-        
         setResults(filtered)
       } else {
         setResults(sampleJobs)
@@ -85,13 +71,11 @@ export default function SearchPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-            Advanced Search 🔍
-          </h1>
-          <p className="text-gray-600 mt-1">Find the perfect candidates, jobs, or clients</p>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+          Advanced Search 🔍
+        </h1>
+        <p className="text-gray-600 mt-1">Find the perfect candidates, jobs, or clients</p>
       </div>
 
       {/* Search Type Selector */}
@@ -178,45 +162,6 @@ export default function SearchPage() {
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <RiMoneyDollarCircleLine className="inline mr-1" /> Max Salary
-                </label>
-                <input
-                  type="number"
-                  value={filters.maxSalary}
-                  onChange={(e) => setFilters({ ...filters, maxSalary: e.target.value })}
-                  placeholder="e.g. 150000"
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <RiTimeLine className="inline mr-1" /> Experience (years)
-                </label>
-                <input
-                  type="number"
-                  value={filters.experience}
-                  onChange={(e) => setFilters({ ...filters, experience: e.target.value })}
-                  placeholder="e.g. 5"
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Skills
-                </label>
-                <input
-                  type="text"
-                  value={filters.skills}
-                  onChange={(e) => setFilters({ ...filters, skills: e.target.value })}
-                  placeholder="e.g. React, Node.js"
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Status
                 </label>
                 <select
@@ -272,12 +217,26 @@ export default function SearchPage() {
                     <p>📍 {result.location}</p>
                     <p>💰 ${result.salary.toLocaleString()}</p>
                     <p>⏰ {result.experience} years experience</p>
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {result.skills.map((skill: string) => (
-                        <span key={skill} className="px-2 py-1 bg-purple-100 text-purple-600 text-xs rounded">
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
                   </div>
                 </>
+              )}
+              
+              {searchType === 'jobs' && (
+                <>
+                  <h3 className="font-semibold text-lg mb-1">{result.title}</h3>
+                  <p className="text-purple-600 mb-3">{result.company}</p>
+                  <div className="space-y-2 text-sm text-gray-600">
+                    <p>📍 {result.location}</p>
+                    <p>💰 {result.salary}</p>
+                    <p>⏰ {result.type}</p>
+                    <p className="text-xs text-gray-400">Posted {result.posted}</p>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
