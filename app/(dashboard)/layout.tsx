@@ -1,39 +1,43 @@
-// Secondary navigation (sidebar)
-const sidebarNavigation = [
-  {
-    category: 'Core Features',
-    emoji: '🎯',
-    items: [
-      { name: 'Search', href: '/search', icon: RiSearchLine, emoji: '🔍', color: 'from-purple-400 to-pink-400' },
-      { name: 'Calendar', href: '/calendar', icon: RiCalendarLine, emoji: '📅', color: 'from-blue-400 to-cyan-400' },
-      { name: 'Pipeline', href: '/pipeline', icon: RiFlowChart, emoji: '🚀', color: 'from-green-400 to-teal-400' },
-    ]
-  },
-  {
-    category: 'Analytics',
-    emoji: '📊',
-    items: [
-      { name: 'Performance', href: '/performance', icon: RiBarChartBoxLine, emoji: '📈', color: 'from-purple-400 to-pink-400' },
-      { name: 'Regional Reports', href: '/regional', icon: RiMapPinLine, emoji: '🗺️', color: 'from-blue-400 to-cyan-400' },
-      { name: 'Reports', href: '/reports', icon: RiFileListLine, emoji: '📋', color: 'from-green-400 to-teal-400' },
-    ]
-  },
-  {
-    category: 'Workflow',
-    emoji: '⚡',
-    items: [
-      { name: 'Recruitment Flow', href: '/workflow', icon: RiFlowChart, emoji: '🔄', color: 'from-orange-400 to-red-400' },
-      { name: 'CV Submissions', href: '/submissions', icon: RiFileList3Line, emoji: '📄', color: 'from-indigo-400 to-purple-400' },
-      { name: 'Tasks', href: '/tasks', icon: RiTaskLine, emoji: '✅', color: 'from-pink-400 to-rose-400' },
-    ]
-  },
-  {
-    category: 'Tools',
-    emoji: '🛠️',
-    items: [
-      { name: 'Fee Calculator', href: '/calculator', icon: RiCalculatorLine, emoji: '💰', color: 'from-yellow-400 to-orange-400' },
-      { name: 'Team', href: '/team', icon: RiTeamLine, emoji: '👨‍👩‍👧‍👦', color: 'from-cyan-400 to-blue-400' },
-      { name: 'Email Templates', href: '/email', icon: RiMailLine, emoji: '📧', color: 'from-teal-400 to-green-400' },
-    ]
-  }
-]
+'use client'
+
+import ChatBox from '@/components/chat/ChatBox'
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  RiDashboardLine,
+  RiBriefcaseLine,
+  RiUserLine,
+  RiBuilding2Line,
+  RiFlowChart,
+  RiBarChartBoxLine,
+  RiFileListLine,
+  RiMapPinLine,
+  RiCalculatorLine,
+  RiTeamLine,
+  RiMenu3Line,
+  RiCloseLine,
+  RiNotification3Line,
+  RiSearchLine,  // ADD THIS LINE - IT'S MISSING!
+  RiMoonLine,
+  RiSunLine,
+  RiSettings3Line,
+  RiLogoutBoxLine,
+  RiMailLine,
+  RiTaskLine,
+  RiFileList3Line,
+  RiArrowLeftSLine,
+  RiArrowRightSLine,
+  RiHome2Line,
+  RiPieChartLine,
+  RiUserStarLine,
+  RiMoneyDollarCircleLine,
+  RiCalendarLine,  // ADD THIS TOO IF MISSING
+  RiHeartLine,
+  RiStarLine,
+  RiRocketLine,
+  RiFireLine,
+  RiTrophyLine,
+  RiSparklingLine
+} from 'react-icons/ri'
