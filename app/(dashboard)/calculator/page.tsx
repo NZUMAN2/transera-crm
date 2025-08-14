@@ -2,11 +2,6 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { 
-  RiCalculatorLine,
-  RiPercentLine,
-  RiMoneyDollarCircleLine
-} from 'react-icons/ri'
 
 export default function CalculatorPage() {
   const [salary, setSalary] = useState('')
@@ -40,8 +35,7 @@ export default function CalculatorPage() {
           {/* Salary Input */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              <RiMoneyDollarCircleLine className="inline mr-2" />
-              Annual Salary
+              💵 Annual Salary
             </label>
             <input
               type="number"
@@ -55,8 +49,7 @@ export default function CalculatorPage() {
           {/* Percentage Input */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              <RiPercentLine className="inline mr-2" />
-              Fee Percentage
+              📊 Fee Percentage
             </label>
             <div className="flex gap-2">
               {['15', '20', '25', '30'].map(percent => (
@@ -87,8 +80,7 @@ export default function CalculatorPage() {
             onClick={calculateFee}
             className="w-full py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold text-lg hover:opacity-90 transition-all"
           >
-            <RiCalculatorLine className="inline mr-2" />
-            Calculate Fee
+            🧮 Calculate Fee
           </button>
 
           {/* Result */}
