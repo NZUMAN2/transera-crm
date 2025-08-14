@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 
@@ -16,29 +15,52 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [showQuickAdd, setShowQuickAdd] = useState<string | null>(null)
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
-  const supabase = createClient()
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     loadDashboardData()
   }, [])
 
-  async function loadDashboardData() {
+  function loadDashboardData() {
+    // Load from localStorage instead of Supabase
     try {
-      const [candidatesCount, jobsCount, clientsCount] = await Promise.all([
-        supabase.from('candidates').select('*', { count: 'exact', head: true }),
-        supabase.from('jobs').select('*', { count: 'exact', head: true }),
-        supabase.from('clients').select('*', { count: 'exact', head: true })
-      ])
-
+      const candidates = JSON.parse(localStorage.getItem('candidates') || '[]')
+      const jobs = JSON.parse(localStorage.getItem('jobs') || '[]')
+      const clients = JSON.parse(localStorage.getItem('clients') || '[]')
+      const placements = JSON.parse(localStorage.getItem('placements') || '[]')
+      
+      // If no data, use defaults
+      if (candidates.length === 0) {
+        const defaultCandidates = generateDefaultCandidates()
+        localStorage.setItem('candidates', JSON.stringify(defaultCandidates))
+      }
+      
       setStats({
-        candidates: candidatesCount.count || 326,
-        jobs: jobsCount.count || 47,
-        clients: clientsCount.count || 28,
-        placements: 12
+        candidates: candidates.length || 326,
+        jobs: jobs.length || 47,
+        clients: clients.length || 28,
+        placements: placements.length || 12
       })
     } catch (error) {
-      console.error('Error loading data:', error)
+      console.log('Using default stats')
+      // Use default stats if localStorage fails
+      setStats({
+        candidates: 326,
+        jobs: 47,
+        clients: 28,
+        placements: 12
+      })
     }
+  }
+
+  function generateDefaultCandidates() {
+    return [
+      { id: 1, name: 'John Doe', role: 'Software Engineer', email: 'john@example.com', phone: '+1234567890', status: 'active', experience: 5 },
+      { id: 2, name: 'Jane Smith', role: 'Product Manager', email: 'jane@example.com', phone: '+1234567891', status: 'interviewing', experience: 7 },
+      { id: 3, name: 'Mike Johnson', role: 'UI/UX Designer', email: 'mike@example.com', phone: '+1234567892', status: 'active', experience: 3 },
+      { id: 4, name: 'Sarah Williams', role: 'Data Scientist', email: 'sarah@example.com', phone: '+1234567893', status: 'placed', experience: 6 },
+      { id: 5, name: 'Tom Brown', role: 'DevOps Engineer', email: 'tom@example.com', phone: '+1234567894', status: 'active', experience: 4 }
+    ]
   }
 
   const handleSearch = (e: React.FormEvent) => {
@@ -52,7 +74,6 @@ export default function DashboardPage() {
     const files = Array.from(e.target.files || [])
     if (files.length > 0) {
       setUploadedFiles(prev => [...prev, ...files])
-      // Store in localStorage for now
       const fileData = files.map(file => ({
         name: file.name,
         size: file.size,
@@ -68,13 +89,13 @@ export default function DashboardPage() {
   const quickActions = [
     {
       title: 'Add Candidate',
-      icon: '➕',
+      icon: '👤',
       color: 'from-blue-500 to-cyan-500',
       onClick: () => setShowQuickAdd('candidate')
     },
     {
       title: 'Post Job',
-      icon: '📝',
+      icon: '💼',
       color: 'from-purple-500 to-pink-500',
       onClick: () => setShowQuickAdd('job')
     },
@@ -97,10 +118,10 @@ export default function DashboardPage() {
       onClick: () => document.getElementById('file-upload')?.click()
     },
     {
-      title: 'Send Email',
-      icon: '✉️',
+      title: 'Pipeline',
+      icon: '🎯',
       color: 'from-pink-500 to-rose-500',
-      onClick: () => router.push('/emails')
+      onClick: () => router.push('/pipeline')
     }
   ]
 
@@ -111,6 +132,7 @@ export default function DashboardPage() {
       change: '+12%',
       emoji: '👥',
       color: 'from-purple-500 to-pink-500',
+      bgColor: 'bg-purple-50',
       onClick: () => router.push('/candidates')
     },
     {
@@ -119,6 +141,7 @@ export default function DashboardPage() {
       change: '+8%',
       emoji: '💼',
       color: 'from-blue-500 to-cyan-500',
+      bgColor: 'bg-blue-50',
       onClick: () => router.push('/jobs')
     },
     {
@@ -127,6 +150,7 @@ export default function DashboardPage() {
       change: '+5%',
       emoji: '🏢',
       color: 'from-green-500 to-teal-500',
+      bgColor: 'bg-green-50',
       onClick: () => router.push('/clients')
     },
     {
@@ -135,6 +159,7 @@ export default function DashboardPage() {
       change: '+20%',
       emoji: '🌟',
       color: 'from-yellow-500 to-orange-500',
+      bgColor: 'bg-yellow-50',
       onClick: () => router.push('/placements')
     }
   ]
@@ -156,8 +181,10 @@ export default function DashboardPage() {
     { id: 5, type: 'cv', action: 'CV submitted to client', name: 'Sarah Brown', time: '3 days ago', icon: '📄', status: 'pending' }
   ]
 
+  const maxPlacements = Math.max(...monthlyData.map(d => d.placements))
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       {/* Hidden file input */}
       <input
         id="file-upload"
@@ -168,7 +195,7 @@ export default function DashboardPage() {
         className="hidden"
       />
 
-      {/* Welcome Banner with Search */}
+      {/* Welcome Banner */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -207,11 +234,11 @@ export default function DashboardPage() {
             transition={{ delay: index * 0.1 }}
             whileHover={{ scale: 1.05 }}
             onClick={stat.onClick}
-            className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all cursor-pointer group"
+            className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all cursor-pointer"
           >
             <div className="flex items-center justify-between mb-4">
-              <div className={`p-3 bg-gradient-to-r ${stat.color} rounded-lg text-white text-2xl`}>
-                {stat.emoji}
+              <div className={`${stat.bgColor} p-3 rounded-lg`}>
+                <span className="text-2xl">{stat.emoji}</span>
               </div>
               <span className={`text-sm font-semibold ${
                 stat.change.startsWith('+') ? 'text-green-500' : 'text-red-500'
@@ -225,7 +252,7 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Quick Actions - FULLY FUNCTIONAL */}
+      {/* Quick Actions */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -237,9 +264,8 @@ export default function DashboardPage() {
             <button
               key={action.title}
               onClick={action.onClick}
-              className={`p-4 bg-white rounded-lg hover:shadow-md transition-all text-center group relative overflow-hidden`}
+              className="p-4 bg-white rounded-lg hover:shadow-md transition-all text-center group"
             >
-              <div className={`absolute inset-0 bg-gradient-to-r ${action.color} opacity-0 group-hover:opacity-10 transition-opacity`} />
               <span className="text-2xl mb-2 block group-hover:scale-110 transition-transform">
                 {action.icon}
               </span>
@@ -249,59 +275,42 @@ export default function DashboardPage() {
         </div>
       </motion.div>
 
+      {/* Charts and Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Enhanced Performance Chart */}
+        {/* Monthly Performance */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           className="bg-white rounded-xl p-6 shadow-sm border border-gray-100"
         >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-800">Monthly Performance 📊</h2>
-            <select className="text-sm border rounded-lg px-3 py-1">
-              <option>Last 6 months</option>
-              <option>Last year</option>
-              <option>All time</option>
-            </select>
-          </div>
+          <h2 className="text-xl font-bold text-gray-800 mb-6">Monthly Performance 📊</h2>
           <div className="space-y-4">
             {monthlyData.map((data, index) => (
-              <div key={data.month}>
-                <div className="flex items-center justify-between mb-1">
+              <div key={data.month} className="space-y-2">
+                <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-600">{data.month}</span>
-                  <div className="flex gap-4 text-xs">
-                    <span>📊 {data.placements} placements</span>
-                    <span>💬 {data.interviews} interviews</span>
-                    <span>📝 {data.applications} applications</span>
-                  </div>
+                  <span className="text-xs text-gray-500">{data.placements} placements</span>
                 </div>
-                <div className="flex gap-2">
-                  <div className="flex-1 bg-gray-100 rounded-full h-6 overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${(data.placements / 20) * 100}%` }}
-                      transition={{ duration: 0.5, delay: index * 0.1 }}
-                      className="h-full bg-gradient-to-r from-green-500 to-teal-500 rounded-full flex items-center justify-end pr-2"
-                    >
-                      <span className="text-white text-xs font-bold">{data.placements}</span>
-                    </motion.div>
-                  </div>
+                <div className="bg-gray-100 rounded-full h-6 overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(data.placements / maxPlacements) * 100}%` }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
+                  />
                 </div>
               </div>
             ))}
           </div>
         </motion.div>
 
-        {/* Enhanced Recent Activity */}
+        {/* Recent Activity */}
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           className="bg-white rounded-xl p-6 shadow-sm border border-gray-100"
         >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-800">Recent Activity 🔥</h2>
-            <button className="text-sm text-purple-600 hover:text-purple-700">View all →</button>
-          </div>
+          <h2 className="text-xl font-bold text-gray-800 mb-6">Recent Activity 🔥</h2>
           <div className="space-y-4">
             {recentActivity.map((activity, index) => (
               <motion.div
@@ -313,7 +322,6 @@ export default function DashboardPage() {
                   if (activity.type === 'candidate') router.push('/candidates')
                   else if (activity.type === 'interview') router.push('/calendar')
                   else if (activity.type === 'client') router.push('/clients')
-                  else if (activity.type === 'cv') router.push('/submissions')
                 }}
                 className="flex items-start gap-4 p-3 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
               >
@@ -322,18 +330,7 @@ export default function DashboardPage() {
                   <p className="text-sm font-medium text-gray-800">{activity.action}</p>
                   <p className="text-xs text-gray-500">{activity.name}</p>
                 </div>
-                <div className="text-right">
-                  <span className="text-xs text-gray-400">{activity.time}</span>
-                  <div className={`text-xs mt-1 px-2 py-0.5 rounded-full inline-block ${
-                    activity.status === 'new' ? 'bg-blue-100 text-blue-600' :
-                    activity.status === 'scheduled' ? 'bg-yellow-100 text-yellow-600' :
-                    activity.status === 'completed' ? 'bg-green-100 text-green-600' :
-                    activity.status === 'pending' ? 'bg-orange-100 text-orange-600' :
-                    'bg-gray-100 text-gray-600'
-                  }`}>
-                    {activity.status}
-                  </div>
-                </div>
+                <span className="text-xs text-gray-400">{activity.time}</span>
               </motion.div>
             ))}
           </div>
@@ -350,16 +347,15 @@ export default function DashboardPage() {
             { name: 'email', label: 'Email', type: 'email', required: true },
             { name: 'phone', label: 'Phone', type: 'tel' },
             { name: 'role', label: 'Desired Role', type: 'text' },
-            { name: 'experience', label: 'Years of Experience', type: 'number' },
-            { name: 'cv', label: 'Upload CV', type: 'file', accept: '.pdf,.doc,.docx' }
+            { name: 'experience', label: 'Years of Experience', type: 'number' }
           ]}
-          onSubmit={(data) => {
+          onSubmit={(data: any) => {
             const candidates = JSON.parse(localStorage.getItem('candidates') || '[]')
             candidates.push({ ...data, id: Date.now(), createdAt: new Date().toISOString() })
             localStorage.setItem('candidates', JSON.stringify(candidates))
             alert('Candidate added successfully!')
             setShowQuickAdd(null)
-            router.push('/candidates')
+            loadDashboardData()
           }}
         />
       )}
@@ -373,16 +369,15 @@ export default function DashboardPage() {
             { name: 'company', label: 'Company', type: 'text', required: true },
             { name: 'location', label: 'Location', type: 'text' },
             { name: 'salary', label: 'Salary Range', type: 'text' },
-            { name: 'type', label: 'Employment Type', type: 'select', options: ['Full-time', 'Part-time', 'Contract', 'Remote'] },
-            { name: 'description', label: 'Description', type: 'textarea' }
+            { name: 'type', label: 'Employment Type', type: 'select', options: ['Full-time', 'Part-time', 'Contract', 'Remote'] }
           ]}
-          onSubmit={(data) => {
+          onSubmit={(data: any) => {
             const jobs = JSON.parse(localStorage.getItem('jobs') || '[]')
             jobs.push({ ...data, id: Date.now(), createdAt: new Date().toISOString() })
             localStorage.setItem('jobs', JSON.stringify(jobs))
             alert('Job posted successfully!')
             setShowQuickAdd(null)
-            router.push('/jobs')
+            loadDashboardData()
           }}
         />
       )}
@@ -404,7 +399,7 @@ function QuickAddModal({ title, onClose, fields, onSubmit }: any) {
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="bg-white rounded-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-xl p-6 max-w-md w-full"
       >
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-bold">{title}</h3>
@@ -419,14 +414,7 @@ function QuickAddModal({ title, onClose, fields, onSubmit }: any) {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {field.label} {field.required && '*'}
               </label>
-              {field.type === 'textarea' ? (
-                <textarea
-                  required={field.required}
-                  rows={3}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
-                  onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-                />
-              ) : field.type === 'select' ? (
+              {field.type === 'select' ? (
                 <select
                   required={field.required}
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
@@ -437,13 +425,6 @@ function QuickAddModal({ title, onClose, fields, onSubmit }: any) {
                     <option key={opt} value={opt}>{opt}</option>
                   ))}
                 </select>
-              ) : field.type === 'file' ? (
-                <input
-                  type="file"
-                  accept={field.accept}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
-                  onChange={(e) => setFormData({ ...formData, [field.name]: e.target.files?.[0] })}
-                />
               ) : (
                 <input
                   type={field.type}
