@@ -2,14 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { 
-  RiDownloadLine, 
-  RiFileExcelLine, 
-  RiFilePdfLine,
-  RiMailLine,
-  RiBarChartLine,
-  RiRefreshLine
-} from 'react-icons/ri'
 
 export default function ReportsPage() {
   const [selectedReport, setSelectedReport] = useState('monthly')
@@ -34,7 +26,6 @@ export default function ReportsPage() {
   function generateReport() {
     setLoading(true)
     setTimeout(() => {
-      // Generate sample data based on report type
       let data = []
       
       if (selectedReport === 'candidates') {
@@ -76,16 +67,12 @@ export default function ReportsPage() {
       return
     }
 
-    // Get headers from first object
     const headers = Object.keys(reportData[0])
-    
-    // Create CSV content
     let csvContent = headers.join(',') + '\n'
     
     reportData.forEach(row => {
       const values = headers.map(header => {
         const value = row[header]
-        // Handle values with commas
         return typeof value === 'string' && value.includes(',') 
           ? `"${value}"` 
           : value
@@ -93,7 +80,6 @@ export default function ReportsPage() {
       csvContent += values.join(',') + '\n'
     })
     
-    // Create blob and download
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     const url = URL.createObjectURL(blob)
@@ -105,33 +91,23 @@ export default function ReportsPage() {
     document.body.removeChild(link)
   }
 
-  function exportExcel() {
-    if (reportData.length === 0) {
-      alert('No data to export')
-      return
-    }
-
-    // For a real Excel export, you would use a library like xlsx
-    // For now, we'll create a CSV that Excel can open
-    exportCSV()
-    alert('Exported as CSV format (opens in Excel)')
-  }
-
   function exportPDF() {
     if (reportData.length === 0) {
       alert('No data to export')
       return
     }
 
-    // Create a printable version
     const printWindow = window.open('', '_blank')
     if (!printWindow) return
 
+    const reportType = reportTypes.find(r => r.id === selectedReport)
+    const headers = Object.keys(reportData[0])
+    
     const html = `
       <!DOCTYPE html>
       <html>
         <head>
-          <title>${reportTypes.find(r => r.id === selectedReport)?.name}</title>
+          <title>${reportType?.name || 'Report'}</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 20px; }
             h1 { color: #7c3aed; }
@@ -139,28 +115,22 @@ export default function ReportsPage() {
             th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
             th { background-color: #f3f4f6; font-weight: bold; }
             tr:nth-child(even) { background-color: #f9fafb; }
-            .header { margin-bottom: 20px; }
-            .date-range { color: #6b7280; font-size: 14px; }
           </style>
         </head>
         <body>
-          <div class="header">
-            <h1>${reportTypes.find(r => r.id === selectedReport)?.name}</h1>
-            <p class="date-range">Date Range: ${dateRange.start} to ${dateRange.end}</p>
-            <p class="date-range">Generated: ${new Date().toLocaleString()}</p>
-          </div>
+          <h1>${reportType?.name || 'Report'}</h1>
+          <p>Date Range: ${dateRange.start} to ${dateRange.end}</p>
+          <p>Generated: ${new Date().toLocaleString()}</p>
           <table>
             <thead>
               <tr>
-                ${Object.keys(reportData[0]).map(key => 
-                  `<th>${key.charAt(0).toUpperCase() + key.slice(1)}</th>`
-                ).join('')}
+                ${headers.map(h => `<th>${h.charAt(0).toUpperCase() + h.slice(1)}</th>`).join('')}
               </tr>
             </thead>
             <tbody>
               ${reportData.map(row => `
                 <tr>
-                  ${Object.values(row).map(value => `<td>${value}</td>`).join('')}
+                  ${headers.map(h => `<td>${row[h]}</td>`).join('')}
                 </tr>
               `).join('')}
             </tbody>
@@ -175,7 +145,8 @@ export default function ReportsPage() {
   }
 
   function emailReport() {
-    const subject = encodeURIComponent(`${reportTypes.find(r => r.id === selectedReport)?.name} - ${new Date().toLocaleDateString()}`)
+    const reportType = reportTypes.find(r => r.id === selectedReport)
+    const subject = encodeURIComponent(`${reportType?.name} - ${new Date().toLocaleDateString()}`)
     const body = encodeURIComponent(`Please find attached the ${selectedReport} report for the period ${dateRange.start} to ${dateRange.end}.\n\nBest regards,\nTransEra CRM`)
     
     window.location.href = `mailto:?subject=${subject}&body=${body}`
@@ -193,9 +164,9 @@ export default function ReportsPage() {
         </div>
         <button
           onClick={generateReport}
-          className="px-4 py-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 flex items-center gap-2"
+          className="px-4 py-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200"
         >
-          <RiRefreshLine /> Refresh Data
+          🔄 Refresh Data
         </button>
       </div>
 
@@ -254,27 +225,27 @@ export default function ReportsPage() {
         <div className="flex flex-wrap gap-3">
           <button
             onClick={exportPDF}
-            className="px-6 py-3 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 flex items-center gap-2"
+            className="px-6 py-3 bg-red-50 text-red-600 rounded-lg hover:bg-red-100"
           >
-            <RiFilePdfLine /> Export as PDF
-          </button>
-          <button
-            onClick={exportExcel}
-            className="px-6 py-3 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 flex items-center gap-2"
-          >
-            <RiFileExcelLine /> Export as Excel
+            📄 Export as PDF
           </button>
           <button
             onClick={exportCSV}
-            className="px-6 py-3 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 flex items-center gap-2"
+            className="px-6 py-3 bg-green-50 text-green-600 rounded-lg hover:bg-green-100"
           >
-            <RiDownloadLine /> Export as CSV
+            📊 Export as Excel
+          </button>
+          <button
+            onClick={exportCSV}
+            className="px-6 py-3 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"
+          >
+            💾 Export as CSV
           </button>
           <button
             onClick={emailReport}
-            className="px-6 py-3 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 flex items-center gap-2"
+            className="px-6 py-3 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100"
           >
-            <RiMailLine /> Email Report
+            ✉️ Email Report
           </button>
         </div>
       </div>
@@ -298,21 +269,21 @@ export default function ReportsPage() {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  {Object.keys(reportData[0]).map(key => (
-                    <th key={key} className="text-left py-3 px-4 font-medium text-gray-700 capitalize">
-                      {key.replace(/_/g, ' ')}
+                  {Object.keys(reportData[0]).map(header => (
+                    <th key={header} className="text-left py-3 px-4 font-medium text-gray-700 capitalize">
+                      {header.replace(/_/g, ' ')}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {reportData.slice(0, 10).map((row, index) => (
-                  <tr key={index} className="border-t hover:bg-gray-50">
-                    {Object.values(row).map((value: any, i) => (
-                      <td key={i} className="py-3 px-4">
-                        {typeof value === 'number' && key.includes('salary' || 'revenue' || 'fee')
+                {reportData.slice(0, 10).map((row, rowIndex) => (
+                  <tr key={rowIndex} className="border-t hover:bg-gray-50">
+                    {Object.entries(row).map(([colKey, value], colIndex) => (
+                      <td key={colIndex} className="py-3 px-4">
+                        {typeof value === 'number' && colKey.includes('salary') || colKey.includes('revenue') || colKey.includes('fee')
                           ? `$${value.toLocaleString()}`
-                          : value}
+                          : String(value)}
                       </td>
                     ))}
                   </tr>
