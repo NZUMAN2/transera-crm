@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { createClient } from '@/lib/supabase/client'
 import { 
   RiCalendarLine,
   RiTimeLine,
@@ -39,25 +38,52 @@ export default function CalendarPage() {
     role: '',
     notes: ''
   })
-  
-  const supabase = createClient()
 
   useEffect(() => {
     loadEvents()
   }, [currentDate])
 
-  async function loadEvents() {
-    // Load events from Supabase or localStorage
-    const savedEvents = localStorage.getItem('calendar_events')
-    if (savedEvents) {
-      const parsed = JSON.parse(savedEvents)
-      setEvents(parsed.map((e: any) => ({ ...e, date: new Date(e.date) })))
+  function loadEvents() {
+    try {
+      const savedEvents = localStorage.getItem('calendar_events')
+      if (savedEvents) {
+        const parsed = JSON.parse(savedEvents)
+        setEvents(parsed.map((e: any) => ({ ...e, date: new Date(e.date) })))
+      } else {
+        // Set some default events
+        setEvents([
+          {
+            id: '1',
+            date: new Date(),
+            time: '10:00 AM',
+            title: 'Interview - John Doe',
+            type: 'video',
+            candidate: 'John Doe',
+            role: 'Software Engineer'
+          },
+          {
+            id: '2',
+            date: new Date(),
+            time: '2:00 PM',
+            title: 'Client Meeting',
+            type: 'in-person',
+            client: 'Tech Corp'
+          }
+        ])
+      }
+    } catch (error) {
+      console.error('Error loading events:', error)
+      setEvents([])
     }
   }
 
   function saveEvents(updatedEvents: Event[]) {
-    localStorage.setItem('calendar_events', JSON.stringify(updatedEvents))
-    setEvents(updatedEvents)
+    try {
+      localStorage.setItem('calendar_events', JSON.stringify(updatedEvents))
+      setEvents(updatedEvents)
+    } catch (error) {
+      console.error('Error saving events:', error)
+    }
   }
 
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -111,7 +137,6 @@ export default function CalendarPage() {
     const updatedEvents = [...events, event]
     saveEvents(updatedEvents)
     
-    // Reset form
     setNewEvent({
       title: '',
       time: '',
@@ -140,7 +165,6 @@ export default function CalendarPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
@@ -151,8 +175,7 @@ export default function CalendarPage() {
         <button
           onClick={() => {
             if (!selectedDate) {
-              alert('Please select a date first')
-              return
+              setSelectedDate(new Date())
             }
             setShowNewEvent(true)
           }}
@@ -163,9 +186,7 @@ export default function CalendarPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Calendar */}
         <div className="lg:col-span-2 bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-          {/* Month Navigation */}
           <div className="flex items-center justify-between mb-6">
             <button onClick={prevMonth} className="p-2 hover:bg-gray-100 rounded-lg">
               ←
@@ -178,7 +199,6 @@ export default function CalendarPage() {
             </button>
           </div>
 
-          {/* Days of Week */}
           <div className="grid grid-cols-7 gap-2 mb-4">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
               <div key={day} className="text-center text-sm font-medium text-gray-600">
@@ -187,11 +207,10 @@ export default function CalendarPage() {
             ))}
           </div>
 
-          {/* Calendar Days */}
           <div className="grid grid-cols-7 gap-2">
             {getDaysArray().map((day, index) => (
               <div
-                key={index}
+                key={`day-${index}`}
                 onClick={() => day && setSelectedDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), day))}
                 className={`
                   aspect-square p-2 rounded-lg cursor-pointer transition-all
@@ -213,7 +232,7 @@ export default function CalendarPage() {
                     {hasEvent(day) && (
                       <div className="flex gap-1 mt-1">
                         {getDayEvents(day).slice(0, 3).map((_, i) => (
-                          <div key={i} className="w-1 h-1 bg-purple-500 rounded-full" />
+                          <div key={`dot-${day}-${i}`} className="w-1 h-1 bg-purple-500 rounded-full" />
                         ))}
                       </div>
                     )}
@@ -224,7 +243,6 @@ export default function CalendarPage() {
           </div>
         </div>
 
-        {/* Day's Events */}
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
           <h3 className="font-bold text-lg mb-4">
             {selectedDate ? 
@@ -281,17 +299,20 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* Add Event Modal */}
       {showNewEvent && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowNewEvent(false)
+          }}
         >
           <motion.div
             initial={{ scale: 0.9 }}
             animate={{ scale: 1 }}
             className="bg-white rounded-xl p-6 max-w-md w-full"
+            onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold">Schedule Interview</h3>
@@ -365,19 +386,6 @@ export default function CalendarPage() {
                   value={newEvent.role}
                   onChange={(e) => setNewEvent({ ...newEvent, role: e.target.value })}
                   placeholder="e.g. Software Engineer"
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notes
-                </label>
-                <textarea
-                  value={newEvent.notes}
-                  onChange={(e) => setNewEvent({ ...newEvent, notes: e.target.value })}
-                  placeholder="Additional notes..."
-                  rows={3}
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
                 />
               </div>
