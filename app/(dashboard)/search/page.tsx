@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { motion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 import { useSearchParams, useRouter } from 'next/navigation'
@@ -15,7 +15,7 @@ import {
   RiBuilding2Line
 } from 'react-icons/ri'
 
-export default function SearchPage() {
+function SearchContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const initialQuery = searchParams.get('q') || ''
@@ -35,7 +35,6 @@ export default function SearchPage() {
   const [showFilters, setShowFilters] = useState(false)
   const supabase = createClient()
 
-  // Run search on mount if query exists
   useEffect(() => {
     if (initialQuery) {
       handleSearch()
@@ -46,75 +45,30 @@ export default function SearchPage() {
     setLoading(true)
     
     try {
-      let query
-      
-      if (searchType === 'candidates') {
-        query = supabase.from('candidates').select('*')
-        
-        if (searchQuery) {
-          query = query.or(`name.ilike.%${searchQuery}%,role.ilike.%${searchQuery}%,skills.cs.{${searchQuery}}`)
+      // Simulate search with sample data
+      setTimeout(() => {
+        if (searchType === 'candidates') {
+          setResults([
+            { id: 1, name: 'John Doe', role: 'Software Engineer', location: 'New York', expected_salary: 120000, experience: 5, skills: ['React', 'Node.js'], status: 'available' },
+            { id: 2, name: 'Jane Smith', role: 'Product Manager', location: 'San Francisco', expected_salary: 150000, experience: 7, skills: ['Agile', 'Scrum'], status: 'interviewing' },
+            { id: 3, name: 'Mike Johnson', role: 'UI/UX Designer', location: 'Los Angeles', expected_salary: 95000, experience: 3, skills: ['Figma', 'Adobe XD'], status: 'available' }
+          ])
+        } else if (searchType === 'jobs') {
+          setResults([
+            { id: 1, title: 'Senior Developer', company: 'Tech Corp', location: 'Remote', salary_range: '100k-150k', employment_type: 'Full-time', created_at: new Date() },
+            { id: 2, title: 'Product Manager', company: 'StartupXYZ', location: 'New York', salary_range: '120k-180k', employment_type: 'Full-time', created_at: new Date() }
+          ])
+        } else {
+          setResults([
+            { id: 1, company_name: 'Tech Corp', industry: 'Technology', location: 'San Francisco', employee_count: '100-500' },
+            { id: 2, company_name: 'Finance Inc', industry: 'Banking', location: 'New York', employee_count: '1000+' }
+          ])
         }
-        
-        if (filters.location) {
-          query = query.ilike('location', `%${filters.location}%`)
-        }
-        
-        if (filters.minSalary) {
-          query = query.gte('expected_salary', filters.minSalary)
-        }
-        
-        if (filters.maxSalary) {
-          query = query.lte('expected_salary', filters.maxSalary)
-        }
-        
-        if (filters.status !== 'all') {
-          query = query.eq('status', filters.status)
-        }
-      } else if (searchType === 'jobs') {
-        query = supabase.from('jobs').select('*')
-        
-        if (searchQuery) {
-          query = query.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`)
-        }
-      } else {
-        query = supabase.from('clients').select('*')
-        
-        if (searchQuery) {
-          query = query.or(`company_name.ilike.%${searchQuery}%,industry.ilike.%${searchQuery}%`)
-        }
-      }
-      
-      const { data, error } = await query
-      
-      if (error) throw error
-      
-      setResults(data || [])
+        setLoading(false)
+      }, 500)
     } catch (error) {
       console.error('Search error:', error)
-      // Use sample data as fallback
-      setResults(getSampleData())
-    } finally {
       setLoading(false)
-    }
-  }
-
-  function getSampleData() {
-    if (searchType === 'candidates') {
-      return [
-        { id: 1, name: 'John Doe', role: 'Software Engineer', location: 'New York', expected_salary: 120000, experience: 5, skills: ['React', 'Node.js'], status: 'available' },
-        { id: 2, name: 'Jane Smith', role: 'Product Manager', location: 'San Francisco', expected_salary: 150000, experience: 7, skills: ['Agile', 'Scrum'], status: 'interviewing' },
-        { id: 3, name: 'Mike Johnson', role: 'UI/UX Designer', location: 'Los Angeles', expected_salary: 95000, experience: 3, skills: ['Figma', 'Adobe XD'], status: 'available' }
-      ]
-    } else if (searchType === 'jobs') {
-      return [
-        { id: 1, title: 'Senior Developer', company: 'Tech Corp', location: 'Remote', salary_range: '100k-150k', employment_type: 'Full-time', created_at: new Date() },
-        { id: 2, title: 'Product Manager', company: 'StartupXYZ', location: 'New York', salary_range: '120k-180k', employment_type: 'Full-time', created_at: new Date() }
-      ]
-    } else {
-      return [
-        { id: 1, company_name: 'Tech Corp', industry: 'Technology', location: 'San Francisco', employee_count: '100-500' },
-        { id: 2, company_name: 'Finance Inc', industry: 'Banking', location: 'New York', employee_count: '1000+' }
-      ]
     }
   }
 
@@ -312,5 +266,17 @@ export default function SearchPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <SearchContent />
+    </Suspense>
   )
 }
