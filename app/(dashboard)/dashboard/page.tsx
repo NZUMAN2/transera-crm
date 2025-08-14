@@ -3,31 +3,24 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { motion } from 'framer-motion'
+import { useRouter } from 'next/navigation'
 import { 
   RiUserLine, 
   RiBriefcaseLine, 
   RiBuilding2Line,
-  RiTrendingUpLine,
-  RiCalendarLine,
-  RiTimeLine,
   RiStarLine,
-  RiMoneyDollarCircleLine
+  RiSearchLine
 } from 'react-icons/ri'
 
 export default function DashboardPage() {
+  const router = useRouter()
   const [stats, setStats] = useState({
     candidates: 326,
     jobs: 47,
     clients: 28,
     placements: 12
   })
-  const [recentActivity, setRecentActivity] = useState([
-    { id: 1, type: 'candidate', action: 'New application received', name: 'John Doe', time: '2 hours ago', icon: '👤' },
-    { id: 2, type: 'interview', action: 'Interview scheduled', name: 'Jane Smith', time: '4 hours ago', icon: '📅' },
-    { id: 3, type: 'placement', action: 'Placement confirmed', name: 'Mike Johnson', time: '1 day ago', icon: '✅' },
-    { id: 4, type: 'client', action: 'New job posting', name: 'Tech Corp', time: '2 days ago', icon: '🏢' }
-  ])
-
+  const [searchQuery, setSearchQuery] = useState('')
   const supabase = createClient()
 
   useEffect(() => {
@@ -35,7 +28,6 @@ export default function DashboardPage() {
   }, [])
 
   async function loadDashboardData() {
-    // Load real data from Supabase
     const [candidatesCount, jobsCount, clientsCount] = await Promise.all([
       supabase.from('candidates').select('*', { count: 'exact', head: true }),
       supabase.from('jobs').select('*', { count: 'exact', head: true }),
@@ -50,46 +42,67 @@ export default function DashboardPage() {
     })
   }
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery)}`)
+    }
+  }
+
+  const quickActions = [
+    {
+      title: 'Add Candidate',
+      icon: '➕',
+      onClick: () => router.push('/candidates/new')
+    },
+    {
+      title: 'Post Job',
+      icon: '📝',
+      onClick: () => router.push('/jobs/new')
+    },
+    {
+      title: 'Schedule Interview',
+      icon: '📅',
+      onClick: () => router.push('/calendar')
+    },
+    {
+      title: 'View Reports',
+      icon: '📊',
+      onClick: () => router.push('/reports')
+    }
+  ]
+
   const statCards = [
     {
       title: 'Total Candidates',
       value: stats.candidates,
       change: '+12%',
-      icon: RiUserLine,
-      color: 'from-purple-500 to-pink-500',
-      bgColor: 'bg-purple-50',
-      emoji: '👥'
+      emoji: '👥',
+      onClick: () => router.push('/candidates')
     },
     {
       title: 'Active Jobs',
       value: stats.jobs,
       change: '+8%',
-      icon: RiBriefcaseLine,
-      color: 'from-blue-500 to-cyan-500',
-      bgColor: 'bg-blue-50',
-      emoji: '💼'
+      emoji: '💼',
+      onClick: () => router.push('/jobs')
     },
     {
       title: 'Clients',
       value: stats.clients,
       change: '+5%',
-      icon: RiBuilding2Line,
-      color: 'from-green-500 to-teal-500',
-      bgColor: 'bg-green-50',
-      emoji: '🏢'
+      emoji: '🏢',
+      onClick: () => router.push('/clients')
     },
     {
       title: 'Placements',
       value: stats.placements,
       change: '+20%',
-      icon: RiStarLine,
-      color: 'from-yellow-500 to-orange-500',
-      bgColor: 'bg-yellow-50',
-      emoji: '🌟'
+      emoji: '🌟',
+      onClick: () => router.push('/placements')
     }
   ]
 
-  // Monthly placement data for chart
   const monthlyData = [
     { month: 'Jan', placements: 8 },
     { month: 'Feb', placements: 12 },
@@ -103,17 +116,34 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Welcome Banner */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 rounded-2xl p-8 text-white shadow-xl"
       >
         <h1 className="text-3xl font-bold mb-2">Welcome back! 🎯</h1>
-        <p className="text-purple-100">Here's what's happening with your recruitment today.</p>
+        <p className="text-purple-100 mb-4">Here's what's happening with your recruitment today.</p>
+        
+        <form onSubmit={handleSearch} className="max-w-md">
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search candidates, jobs, or clients..."
+              className="w-full px-4 py-2 pl-10 pr-20 rounded-lg bg-white/20 backdrop-blur-md text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50"
+            />
+            <RiSearchLine className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70" />
+            <button
+              type="submit"
+              className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 bg-white/30 rounded hover:bg-white/40 transition-colors"
+            >
+              Search
+            </button>
+          </div>
+        </form>
       </motion.div>
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((stat, index) => (
           <motion.div
@@ -122,10 +152,11 @@ export default function DashboardPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
             whileHover={{ scale: 1.05 }}
-            className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all"
+            onClick={stat.onClick}
+            className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all cursor-pointer"
           >
             <div className="flex items-center justify-between mb-4">
-              <div className={`${stat.bgColor} p-3 rounded-lg`}>
+              <div className="p-3 bg-purple-50 rounded-lg">
                 <span className="text-2xl">{stat.emoji}</span>
               </div>
               <span className={`text-sm font-semibold ${
@@ -140,19 +171,13 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Charts and Activity Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Monthly Placements Chart */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           className="bg-white rounded-xl p-6 shadow-sm border border-gray-100"
         >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-800">Monthly Placements 📊</h2>
-            <span className="text-sm text-gray-500">Last 6 months</span>
-          </div>
-          
+          <h2 className="text-xl font-bold text-gray-800 mb-6">Monthly Placements 📊</h2>
           <div className="space-y-4">
             {monthlyData.map((data, index) => (
               <div key={data.month} className="flex items-center gap-4">
@@ -172,7 +197,6 @@ export default function DashboardPage() {
           </div>
         </motion.div>
 
-        {/* Recent Activity */}
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -180,13 +204,18 @@ export default function DashboardPage() {
         >
           <h2 className="text-xl font-bold text-gray-800 mb-6">Recent Activity 🔥</h2>
           <div className="space-y-4">
-            {recentActivity.map((activity, index) => (
+            {[
+              { icon: '👤', action: 'New application received', name: 'John Doe', time: '2 hours ago' },
+              { icon: '📅', action: 'Interview scheduled', name: 'Jane Smith', time: '4 hours ago' },
+              { icon: '✅', action: 'Placement confirmed', name: 'Mike Johnson', time: '1 day ago' },
+              { icon: '🏢', action: 'New job posting', name: 'Tech Corp', time: '2 days ago' }
+            ].map((activity, index) => (
               <motion.div
-                key={activity.id}
+                key={index}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="flex items-start gap-4 p-3 hover:bg-gray-50 rounded-lg transition-colors"
+                className="flex items-start gap-4 p-3 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
               >
                 <span className="text-2xl">{activity.icon}</span>
                 <div className="flex-1">
@@ -200,7 +229,6 @@ export default function DashboardPage() {
         </motion.div>
       </div>
 
-      {/* Quick Actions */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -208,22 +236,18 @@ export default function DashboardPage() {
       >
         <h2 className="text-xl font-bold text-gray-800 mb-4">Quick Actions ⚡</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <button className="p-4 bg-white rounded-lg hover:shadow-md transition-all text-center">
-            <span className="text-2xl mb-2 block">➕</span>
-            <span className="text-sm font-medium text-gray-700">Add Candidate</span>
-          </button>
-          <button className="p-4 bg-white rounded-lg hover:shadow-md transition-all text-center">
-            <span className="text-2xl mb-2 block">📝</span>
-            <span className="text-sm font-medium text-gray-700">Post Job</span>
-          </button>
-          <button className="p-4 bg-white rounded-lg hover:shadow-md transition-all text-center">
-            <span className="text-2xl mb-2 block">📅</span>
-            <span className="text-sm font-medium text-gray-700">Schedule Interview</span>
-          </button>
-          <button className="p-4 bg-white rounded-lg hover:shadow-md transition-all text-center">
-            <span className="text-2xl mb-2 block">📊</span>
-            <span className="text-sm font-medium text-gray-700">View Reports</span>
-          </button>
+          {quickActions.map((action) => (
+            <button
+              key={action.title}
+              onClick={action.onClick}
+              className="p-4 bg-white rounded-lg hover:shadow-md transition-all text-center group"
+            >
+              <span className="text-2xl mb-2 block group-hover:scale-110 transition-transform">
+                {action.icon}
+              </span>
+              <span className="text-sm font-medium text-gray-700">{action.title}</span>
+            </button>
+          ))}
         </div>
       </motion.div>
     </div>

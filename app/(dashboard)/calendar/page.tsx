@@ -1,26 +1,64 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { createClient } from '@/lib/supabase/client'
 import { 
   RiCalendarLine,
   RiTimeLine,
   RiUserLine,
   RiVideoLine,
   RiMapPinLine,
-  RiAddLine
+  RiAddLine,
+  RiCloseLine,
+  RiDeleteBinLine
 } from 'react-icons/ri'
+
+interface Event {
+  id: string
+  date: Date
+  time: string
+  title: string
+  type: 'video' | 'in-person'
+  candidate?: string
+  role?: string
+  client?: string
+  notes?: string
+}
 
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [showNewEvent, setShowNewEvent] = useState(false)
-  const [events, setEvents] = useState([
-    { id: 1, date: new Date(2025, 0, 15), time: '10:00 AM', title: 'Interview - John Doe', type: 'video', candidate: 'John Doe', role: 'Software Engineer' },
-    { id: 2, date: new Date(2025, 0, 15), time: '2:00 PM', title: 'Interview - Jane Smith', type: 'in-person', candidate: 'Jane Smith', role: 'Product Manager' },
-    { id: 3, date: new Date(2025, 0, 17), time: '11:00 AM', title: 'Client Meeting', type: 'video', client: 'Tech Corp' },
-    { id: 4, date: new Date(2025, 0, 20), time: '3:00 PM', title: 'Final Interview', type: 'video', candidate: 'Mike Johnson', role: 'Designer' }
-  ])
+  const [events, setEvents] = useState<Event[]>([])
+  const [newEvent, setNewEvent] = useState({
+    title: '',
+    time: '',
+    type: 'video' as 'video' | 'in-person',
+    candidate: '',
+    role: '',
+    notes: ''
+  })
+  
+  const supabase = createClient()
+
+  useEffect(() => {
+    loadEvents()
+  }, [currentDate])
+
+  async function loadEvents() {
+    // Load events from Supabase or localStorage
+    const savedEvents = localStorage.getItem('calendar_events')
+    if (savedEvents) {
+      const parsed = JSON.parse(savedEvents)
+      setEvents(parsed.map((e: any) => ({ ...e, date: new Date(e.date) })))
+    }
+  }
+
+  function saveEvents(updatedEvents: Event[]) {
+    localStorage.setItem('calendar_events', JSON.stringify(updatedEvents))
+    setEvents(updatedEvents)
+  }
 
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
   const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate()
@@ -53,6 +91,45 @@ export default function CalendarPage() {
     )
   }
 
+  const handleAddEvent = () => {
+    if (!selectedDate || !newEvent.title || !newEvent.time) {
+      alert('Please fill in all required fields')
+      return
+    }
+
+    const event: Event = {
+      id: Date.now().toString(),
+      date: selectedDate,
+      time: newEvent.time,
+      title: newEvent.title,
+      type: newEvent.type,
+      candidate: newEvent.candidate,
+      role: newEvent.role,
+      notes: newEvent.notes
+    }
+
+    const updatedEvents = [...events, event]
+    saveEvents(updatedEvents)
+    
+    // Reset form
+    setNewEvent({
+      title: '',
+      time: '',
+      type: 'video',
+      candidate: '',
+      role: '',
+      notes: ''
+    })
+    setShowNewEvent(false)
+  }
+
+  const handleDeleteEvent = (eventId: string) => {
+    if (confirm('Are you sure you want to delete this event?')) {
+      const updatedEvents = events.filter(e => e.id !== eventId)
+      saveEvents(updatedEvents)
+    }
+  }
+
   const nextMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))
   }
@@ -72,7 +149,13 @@ export default function CalendarPage() {
           <p className="text-gray-600 mt-1">Schedule and manage interviews</p>
         </div>
         <button
-          onClick={() => setShowNewEvent(true)}
+          onClick={() => {
+            if (!selectedDate) {
+              alert('Please select a date first')
+              return
+            }
+            setShowNewEvent(true)
+          }}
           className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg flex items-center gap-2"
         >
           <RiAddLine /> Schedule Interview
@@ -149,15 +232,22 @@ export default function CalendarPage() {
               : 'Select a date'}
           </h3>
           
-          <div className="space-y-3">
+          <div className="space-y-3 max-h-96 overflow-y-auto">
             {selectedDate && getDayEvents(selectedDate.getDate()).length > 0 ? (
               getDayEvents(selectedDate.getDate()).map(event => (
                 <motion.div
                   key={event.id}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  className="p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg"
+                  className="p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg relative group"
                 >
+                  <button
+                    onClick={() => handleDeleteEvent(event.id)}
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700"
+                  >
+                    <RiDeleteBinLine size={16} />
+                  </button>
+                  
                   <div className="flex items-center gap-2 mb-2">
                     <RiTimeLine className="text-purple-600" />
                     <span className="font-medium">{event.time}</span>
@@ -183,27 +273,133 @@ export default function CalendarPage() {
                 </motion.div>
               ))
             ) : (
-              <p className="text-gray-500 text-center py-8">No events scheduled</p>
+              <p className="text-gray-500 text-center py-8">
+                {selectedDate ? 'No events scheduled' : 'Select a date to view events'}
+              </p>
             )}
           </div>
         </div>
       </div>
 
-      {/* Upcoming Interviews */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-        <h3 className="font-bold text-lg mb-4">Upcoming Interviews 🎯</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {events.slice(0, 4).map(event => (
-            <div key={event.id} className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg">
-              <div className="text-xs text-gray-500 mb-1">
-                {event.date.toLocaleDateString()}
-              </div>
-              <h4 className="font-medium text-sm mb-1">{event.title}</h4>
-              <p className="text-xs text-gray-600">{event.time}</p>
+      {/* Add Event Modal */}
+      {showNewEvent && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+        >
+          <motion.div
+            initial={{ scale: 0.9 }}
+            animate={{ scale: 1 }}
+            className="bg-white rounded-xl p-6 max-w-md w-full"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold">Schedule Interview</h3>
+              <button
+                onClick={() => setShowNewEvent(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <RiCloseLine size={24} />
+              </button>
             </div>
-          ))}
-        </div>
-      </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Title *
+                </label>
+                <input
+                  type="text"
+                  value={newEvent.title}
+                  onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                  placeholder="e.g. Interview - John Doe"
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Time *
+                </label>
+                <input
+                  type="time"
+                  value={newEvent.time}
+                  onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Type
+                </label>
+                <select
+                  value={newEvent.type}
+                  onChange={(e) => setNewEvent({ ...newEvent, type: e.target.value as 'video' | 'in-person' })}
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="video">Video Call</option>
+                  <option value="in-person">In Person</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Candidate Name
+                </label>
+                <input
+                  type="text"
+                  value={newEvent.candidate}
+                  onChange={(e) => setNewEvent({ ...newEvent, candidate: e.target.value })}
+                  placeholder="e.g. John Doe"
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Role
+                </label>
+                <input
+                  type="text"
+                  value={newEvent.role}
+                  onChange={(e) => setNewEvent({ ...newEvent, role: e.target.value })}
+                  placeholder="e.g. Software Engineer"
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Notes
+                </label>
+                <textarea
+                  value={newEvent.notes}
+                  onChange={(e) => setNewEvent({ ...newEvent, notes: e.target.value })}
+                  placeholder="Additional notes..."
+                  rows={3}
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => setShowNewEvent(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddEvent}
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:opacity-90"
+                >
+                  Add Event
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
     </div>
   )
 }

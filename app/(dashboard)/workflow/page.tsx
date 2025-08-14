@@ -1,530 +1,595 @@
-// app/(dashboard)/workflow/page.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { motion } from 'framer-motion'
 import { 
-  ArrowRight, CheckCircle, XCircle, Clock, User, Building, 
-  MapPin, Phone, Mail, Calendar, DollarSign, FileText, ChevronRight 
-} from 'lucide-react'
-import { toast } from '@/components/ui/use-toast'
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
+  RiFlowChart,
+  RiAddLine,
+  RiEditLine,
+  RiDeleteBinLine,
+  RiCheckLine,
+  RiTimeLine,
+  RiArrowRightLine,
+  RiDragMoveLine
+} from 'react-icons/ri'
 
-interface Candidate {
-  id: string
-  candidateId: string
-  name: string
-  email: string
-  phone: string
-  position: string
-  client: string
-  location: string
-  currentStage: string
-  submittedDate: string
-  notes: string
-}
-
-interface WorkflowStage {
+interface WorkflowStep {
   id: string
   name: string
-  color: string
-  icon: any
-  candidates: Candidate[]
-  actions: string[]
+  description: string
+  duration: string
+  assignee: string
+  status: 'pending' | 'active' | 'completed'
+  order: number
 }
 
-export default function WorkflowManagementPage() {
-  const [stages, setStages] = useState<WorkflowStage[]>([
-    {
-      id: 'sourcing',
-      name: 'Sourcing',
-      color: 'bg-gray-100 border-gray-300',
-      icon: User,
-      candidates: [],
-      actions: ['Add to pipeline', 'Schedule screening']
-    },
-    {
-      id: 'cv_submitted',
-      name: 'CV Submitted',
-      color: 'bg-blue-100 border-blue-300',
-      icon: FileText,
-      candidates: [],
-      actions: ['Mark as accepted', 'Mark as declined', 'Request more info']
-    },
-    {
-      id: 'cv_accepted',
-      name: 'CV Accepted',
-      color: 'bg-green-100 border-green-300',
-      icon: CheckCircle,
-      candidates: [],
-      actions: ['Schedule 1st interview', 'Send to client']
-    },
-    {
-      id: 'first_round',
-      name: '1st Round',
-      color: 'bg-purple-100 border-purple-300',
-      icon: Calendar,
-      candidates: [],
-      actions: ['Pass to testing', 'Schedule 2nd round', 'Reject']
-    },
-    {
-      id: 'testing',
-      name: 'Testing',
-      color: 'bg-yellow-100 border-yellow-300',
-      icon: FileText,
-      candidates: [],
-      actions: ['Pass to 2nd round', 'Fail', 'Retest']
-    },
-    {
-      id: 'second_round',
-      name: '2nd Round',
-      color: 'bg-indigo-100 border-indigo-300',
-      icon: Calendar,
-      candidates: [],
-      actions: ['Pass to 3rd round', 'Pass to role play', 'Make offer', 'Reject']
-    },
-    {
-      id: 'third_round',
-      name: '3rd Round',
-      color: 'bg-pink-100 border-pink-300',
-      icon: Calendar,
-      candidates: [],
-      actions: ['Pass to role play', 'Make offer', 'Reject']
-    },
-    {
-      id: 'role_play',
-      name: 'Role Play',
-      color: 'bg-orange-100 border-orange-300',
-      icon: User,
-      candidates: [],
-      actions: ['Make offer', 'Reject', 'Schedule follow-up']
-    },
-    {
-      id: 'offer',
-      name: 'Offer Stage',
-      color: 'bg-teal-100 border-teal-300',
-      icon: DollarSign,
-      candidates: [],
-      actions: ['Accept offer', 'Decline offer', 'Negotiate']
-    },
-    {
-      id: 'placed',
-      name: 'Placed',
-      color: 'bg-green-500 border-green-600 text-white',
-      icon: CheckCircle,
-      candidates: [],
-      actions: ['Generate invoice', 'Update start date']
-    }
-  ])
+interface Workflow {
+  id: string
+  name: string
+  description: string
+  steps: WorkflowStep[]
+  createdAt: string
+  status: 'active' | 'paused' | 'completed'
+}
 
-  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [loading, setLoading] = useState(true)
-
-  const supabase = createClient()
+export default function WorkflowPage() {
+  const [workflows, setWorkflows] = useState<Workflow[]>([])
+  const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null)
+  const [showAddWorkflow, setShowAddWorkflow] = useState(false)
+  const [showAddStep, setShowAddStep] = useState(false)
+  const [editingStep, setEditingStep] = useState<WorkflowStep | null>(null)
+  const [newWorkflow, setNewWorkflow] = useState({
+    name: '',
+    description: ''
+  })
+  const [newStep, setNewStep] = useState({
+    name: '',
+    description: '',
+    duration: '',
+    assignee: ''
+  })
 
   useEffect(() => {
-    fetchCandidatesInPipeline()
+    loadWorkflows()
   }, [])
 
-  const fetchCandidatesInPipeline = async () => {
-    try {
-      const { data: pipeline } = await supabase
-        .from('candidate_pipeline')
-        .select(`
-          *,
-          candidates:candidate_id (
-            id,
-            first_name,
-            last_name,
-            email,
-            phone,
-            current_company,
-            job_title
-          ),
-          jobs:job_id (
-            id,
-            title,
-            job_code,
-            location
-          ),
-          clients:client_id (
-            id,
-            company_name
-          )
-        `)
-        .order('cv_submitted', { ascending: false })
-
-      if (pipeline) {
-        // Map pipeline data to workflow stages
-        const mappedCandidates = pipeline.map(item => ({
-          id: item.id,
-          candidateId: item.candidate_id,
-          name: `${item.candidates?.first_name} ${item.candidates?.last_name}`,
-          email: item.candidates?.email || '',
-          phone: item.candidates?.phone || '',
-          position: item.jobs?.title || '',
-          client: item.clients?.company_name || '',
-          location: item.jobs?.location || '',
-          currentStage: item.current_stage || 'sourcing',
-          submittedDate: item.cv_submitted || new Date().toISOString(),
-          notes: item.notes || ''
-        }))
-
-        // Distribute candidates to their stages
-        const updatedStages = stages.map(stage => ({
-          ...stage,
-          candidates: mappedCandidates.filter(c => 
-            c.currentStage.toLowerCase().replace(' ', '_') === stage.id
-          )
-        }))
-
-        setStages(updatedStages)
-      }
-    } catch (error) {
-      console.error('Error fetching pipeline:', error)
-      toast({
-        title: "Error",
-        description: "Failed to fetch candidates",
-        variant: "destructive"
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleDragEnd = async (result: any) => {
-    if (!result.destination) return
-
-    const { source, destination, draggableId } = result
-    
-    if (source.droppableId === destination.droppableId) return
-
-    // Find the candidate
-    const sourceStage = stages.find(s => s.id === source.droppableId)
-    const destStage = stages.find(s => s.id === destination.droppableId)
-    const candidate = sourceStage?.candidates.find(c => c.id === draggableId)
-
-    if (!candidate || !destStage) return
-
-    // Update local state
-    const newStages = stages.map(stage => {
-      if (stage.id === source.droppableId) {
-        return {
-          ...stage,
-          candidates: stage.candidates.filter(c => c.id !== draggableId)
+  function loadWorkflows() {
+    const saved = localStorage.getItem('workflows')
+    if (saved) {
+      setWorkflows(JSON.parse(saved))
+    } else {
+      // Create default workflows
+      const defaultWorkflows: Workflow[] = [
+        {
+          id: '1',
+          name: 'Standard Recruitment Process',
+          description: 'Complete recruitment workflow from application to hire',
+          status: 'active',
+          createdAt: new Date().toISOString(),
+          steps: [
+            {
+              id: '1-1',
+              name: 'Application Review',
+              description: 'Review candidate application and resume',
+              duration: '1-2 days',
+              assignee: 'Recruitment Team',
+              status: 'completed',
+              order: 1
+            },
+            {
+              id: '1-2',
+              name: 'Phone Screening',
+              description: 'Initial phone screening with candidate',
+              duration: '1 day',
+              assignee: 'HR Team',
+              status: 'active',
+              order: 2
+            },
+            {
+              id: '1-3',
+              name: 'Technical Interview',
+              description: 'Technical assessment with hiring manager',
+              duration: '2-3 days',
+              assignee: 'Technical Team',
+              status: 'pending',
+              order: 3
+            },
+            {
+              id: '1-4',
+              name: 'Final Interview',
+              description: 'Final round with senior management',
+              duration: '1-2 days',
+              assignee: 'Management',
+              status: 'pending',
+              order: 4
+            },
+            {
+              id: '1-5',
+              name: 'Offer & Negotiation',
+              description: 'Extend offer and negotiate terms',
+              duration: '2-3 days',
+              assignee: 'HR Team',
+              status: 'pending',
+              order: 5
+            }
+          ]
         }
-      }
-      if (stage.id === destination.droppableId) {
-        return {
-          ...stage,
-          candidates: [...stage.candidates, { ...candidate, currentStage: stage.id }]
-        }
-      }
-      return stage
-    })
-
-    setStages(newStages)
-
-    // Update database
-    try {
-      const updateData: any = {
-        current_stage: destStage.name,
-        updated_at: new Date().toISOString()
-      }
-
-      // Set specific date fields based on stage
-      switch (destStage.id) {
-        case 'cv_accepted':
-          updateData.cv_accepted = true
-          break
-        case 'first_round':
-          updateData.first_round = new Date().toISOString()
-          break
-        case 'testing':
-          updateData.testing_date = new Date().toISOString()
-          break
-        case 'second_round':
-          updateData.second_round = new Date().toISOString()
-          break
-        case 'third_round':
-          updateData.third_round = new Date().toISOString()
-          break
-        case 'role_play':
-          updateData.role_play = new Date().toISOString()
-          break
-        case 'offer':
-          updateData.offered_date = new Date().toISOString()
-          break
-        case 'placed':
-          updateData.offer_accepted = true
-          updateData.start_date = new Date().toISOString()
-          break
-      }
-
-      const { error } = await supabase
-        .from('candidate_pipeline')
-        .update(updateData)
-        .eq('id', candidate.id)
-
-      if (error) throw error
-
-      toast({
-        title: "Stage Updated",
-        description: `${candidate.name} moved to ${destStage.name}`
-      })
-    } catch (error) {
-      console.error('Error updating stage:', error)
-      toast({
-        title: "Error",
-        description: "Failed to update candidate stage",
-        variant: "destructive"
-      })
-      // Revert on error
-      setStages(stages)
+      ]
+      setWorkflows(defaultWorkflows)
+      setSelectedWorkflow(defaultWorkflows[0])
     }
   }
 
-  const performAction = async (action: string, candidate: Candidate, stage: WorkflowStage) => {
-    // Handle different actions
-    switch (action) {
-      case 'Mark as accepted':
-        await updateCandidateStatus(candidate.id, { cv_accepted: true })
-        break
-      case 'Mark as declined':
-        await updateCandidateStatus(candidate.id, { cv_declined: true })
-        break
-      case 'Schedule 1st interview':
-        // Open scheduling dialog
-        setSelectedCandidate(candidate)
-        setIsDialogOpen(true)
-        break
-      // Add more action handlers as needed
-      default:
-        toast({
-          title: "Action",
-          description: `${action} for ${candidate.name}`
-        })
+  function saveWorkflows(updated: Workflow[]) {
+    localStorage.setItem('workflows', JSON.stringify(updated))
+    setWorkflows(updated)
+  }
+
+  function handleAddWorkflow() {
+    if (!newWorkflow.name) {
+      alert('Please enter a workflow name')
+      return
+    }
+
+    const workflow: Workflow = {
+      id: Date.now().toString(),
+      name: newWorkflow.name,
+      description: newWorkflow.description,
+      status: 'active',
+      createdAt: new Date().toISOString(),
+      steps: []
+    }
+
+    const updated = [...workflows, workflow]
+    saveWorkflows(updated)
+    setSelectedWorkflow(workflow)
+    setNewWorkflow({ name: '', description: '' })
+    setShowAddWorkflow(false)
+  }
+
+  function handleDeleteWorkflow(workflowId: string) {
+    if (confirm('Delete this workflow?')) {
+      const updated = workflows.filter(w => w.id !== workflowId)
+      saveWorkflows(updated)
+      if (selectedWorkflow?.id === workflowId) {
+        setSelectedWorkflow(updated[0] || null)
+      }
     }
   }
 
-  const updateCandidateStatus = async (candidateId: string, updates: any) => {
-    try {
-      const { error } = await supabase
-        .from('candidate_pipeline')
-        .update(updates)
-        .eq('id', candidateId)
-
-      if (error) throw error
-
-      toast({
-        title: "Status Updated",
-        description: "Candidate status has been updated"
-      })
-      
-      fetchCandidatesInPipeline()
-    } catch (error) {
-      console.error('Error updating status:', error)
-      toast({
-        title: "Error",
-        description: "Failed to update status",
-        variant: "destructive"
-      })
+  function handleAddStep() {
+    if (!selectedWorkflow || !newStep.name || !newStep.assignee) {
+      alert('Please fill in all required fields')
+      return
     }
-  }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-lg">Loading workflow...</div>
-      </div>
+    const step: WorkflowStep = {
+      id: Date.now().toString(),
+      name: newStep.name,
+      description: newStep.description,
+      duration: newStep.duration,
+      assignee: newStep.assignee,
+      status: 'pending',
+      order: selectedWorkflow.steps.length + 1
+    }
+
+    const updatedWorkflow = {
+      ...selectedWorkflow,
+      steps: [...selectedWorkflow.steps, step]
+    }
+
+    const updated = workflows.map(w => 
+      w.id === selectedWorkflow.id ? updatedWorkflow : w
     )
+    
+    saveWorkflows(updated)
+    setSelectedWorkflow(updatedWorkflow)
+    setNewStep({ name: '', description: '', duration: '', assignee: '' })
+    setShowAddStep(false)
+  }
+
+  function handleUpdateStep() {
+    if (!selectedWorkflow || !editingStep) return
+
+    const updatedSteps = selectedWorkflow.steps.map(step =>
+      step.id === editingStep.id ? editingStep : step
+    )
+
+    const updatedWorkflow = {
+      ...selectedWorkflow,
+      steps: updatedSteps
+    }
+
+    const updated = workflows.map(w =>
+      w.id === selectedWorkflow.id ? updatedWorkflow : w
+    )
+
+    saveWorkflows(updated)
+    setSelectedWorkflow(updatedWorkflow)
+    setEditingStep(null)
+  }
+
+  function handleDeleteStep(stepId: string) {
+    if (!selectedWorkflow) return
+    
+    if (confirm('Delete this step?')) {
+      const updatedSteps = selectedWorkflow.steps
+        .filter(s => s.id !== stepId)
+        .map((step, index) => ({ ...step, order: index + 1 }))
+
+      const updatedWorkflow = {
+        ...selectedWorkflow,
+        steps: updatedSteps
+      }
+
+      const updated = workflows.map(w =>
+        w.id === selectedWorkflow.id ? updatedWorkflow : w
+      )
+
+      saveWorkflows(updated)
+      setSelectedWorkflow(updatedWorkflow)
+    }
+  }
+
+  function handleStepStatusChange(stepId: string, newStatus: WorkflowStep['status']) {
+    if (!selectedWorkflow) return
+
+    const updatedSteps = selectedWorkflow.steps.map(step =>
+      step.id === stepId ? { ...step, status: newStatus } : step
+    )
+
+    const updatedWorkflow = {
+      ...selectedWorkflow,
+      steps: updatedSteps
+    }
+
+    const updated = workflows.map(w =>
+      w.id === selectedWorkflow.id ? updatedWorkflow : w
+    )
+
+    saveWorkflows(updated)
+    setSelectedWorkflow(updatedWorkflow)
+  }
+
+  const getStatusColor = (status: string) => {
+    switch(status) {
+      case 'completed': return 'bg-green-100 text-green-600'
+      case 'active': return 'bg-blue-100 text-blue-600'
+      case 'pending': return 'bg-gray-100 text-gray-600'
+      case 'paused': return 'bg-yellow-100 text-yellow-600'
+      default: return 'bg-gray-100 text-gray-600'
+    }
   }
 
   return (
-    <div className="p-4 max-w-[1800px] mx-auto">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Recruitment Workflow</h1>
-        <p className="text-gray-600 mt-1">Drag and drop candidates between stages</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            Recruitment Workflow 🔄
+          </h1>
+          <p className="text-gray-600 mt-1">Design and manage recruitment workflows</p>
+        </div>
+        <button
+          onClick={() => setShowAddWorkflow(true)}
+          className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg flex items-center gap-2"
+        >
+          <RiAddLine /> New Workflow
+        </button>
       </div>
 
-      {/* Stats Bar */}
-      <div className="grid grid-cols-5 gap-4 mb-6">
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-purple-600">
-              {stages.reduce((sum, stage) => sum + stage.candidates.length, 0)}
-            </div>
-            <p className="text-sm text-gray-600">Total in Pipeline</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-blue-600">
-              {stages.find(s => s.id === 'cv_submitted')?.candidates.length || 0}
-            </div>
-            <p className="text-sm text-gray-600">Awaiting Review</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-yellow-600">
-              {stages.filter(s => ['first_round', 'second_round', 'third_round'].includes(s.id))
-                .reduce((sum, stage) => sum + stage.candidates.length, 0)}
-            </div>
-            <p className="text-sm text-gray-600">In Interview</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-teal-600">
-              {stages.find(s => s.id === 'offer')?.candidates.length || 0}
-            </div>
-            <p className="text-sm text-gray-600">Offers Pending</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-green-600">
-              {stages.find(s => s.id === 'placed')?.candidates.length || 0}
-            </div>
-            <p className="text-sm text-gray-600">Placed</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Workflow Pipeline */}
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex gap-3 overflow-x-auto pb-4">
-          {stages.map((stage, index) => (
-            <div key={stage.id} className="flex-shrink-0">
-              <Card className={`w-64 border-2 ${stage.color}`}>
-                <CardHeader className="p-3">
-                  <CardTitle className="text-sm flex items-center justify-between">
-                    <div className="flex items-center">
-                      <stage.icon size={16} className="mr-2" />
-                      {stage.name}
-                    </div>
-                    <Badge variant="secondary">{stage.candidates.length}</Badge>
-                  </CardTitle>
-                </CardHeader>
-                <Droppable droppableId={stage.id}>
-                  {(provided, snapshot) => (
-                    <CardContent 
-                      ref={provided.innerRef}
-                      {...provided.droppableProps}
-                      className={`p-2 min-h-[400px] max-h-[600px] overflow-y-auto ${
-                        snapshot.isDraggingOver ? 'bg-gray-50' : ''
-                      }`}
-                    >
-                      {stage.candidates.map((candidate, index) => (
-                        <Draggable 
-                          key={candidate.id} 
-                          draggableId={candidate.id} 
-                          index={index}
-                        >
-                          {(provided, snapshot) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              className={`mb-2 p-3 bg-white rounded-lg border shadow-sm hover:shadow-md transition-shadow cursor-move ${
-                                snapshot.isDragging ? 'shadow-lg' : ''
-                              }`}
-                            >
-                              <p className="font-medium text-sm truncate">
-                                {candidate.name}
-                              </p>
-                              <p className="text-xs text-gray-600 truncate">
-                                {candidate.position}
-                              </p>
-                              <p className="text-xs text-gray-500 truncate">
-                                {candidate.client}
-                              </p>
-                              <div className="flex items-center gap-2 mt-2">
-                                <Badge variant="outline" className="text-xs">
-                                  <MapPin size={10} className="mr-1" />
-                                  {candidate.location}
-                                </Badge>
-                              </div>
-                              
-                              {/* Quick Actions Dropdown */}
-                              <Select
-                                onValueChange={(action) => performAction(action, candidate, stage)}
-                              >
-                                <SelectTrigger className="mt-2 h-7 text-xs">
-                                  <SelectValue placeholder="Quick action" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {stage.actions.map(action => (
-                                    <SelectItem key={action} value={action}>
-                                      {action}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          )}
-                        </Draggable>
-                      ))}
-                      {provided.placeholder}
-                    </CardContent>
-                  )}
-                </Droppable>
-              </Card>
-              {index < stages.length - 1 && (
-                <ChevronRight className="inline-block mx-2 mt-32 text-gray-400" size={24} />
-              )}
-            </div>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Workflows List */}
+        <div className="lg:col-span-1 space-y-3">
+          <h3 className="font-bold text-lg mb-3">Workflows</h3>
+          {workflows.map(workflow => (
+            <motion.div
+              key={workflow.id}
+              whileHover={{ scale: 1.02 }}
+              onClick={() => setSelectedWorkflow(workflow)}
+              className={`p-4 rounded-lg cursor-pointer transition-all ${
+                selectedWorkflow?.id === workflow.id
+                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
+                  : 'bg-white border border-gray-200 hover:shadow-md'
+              }`}
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <h4 className="font-semibold">{workflow.name}</h4>
+                  <p className={`text-xs mt-1 ${
+                    selectedWorkflow?.id === workflow.id ? 'text-white/80' : 'text-gray-500'
+                  }`}>
+                    {workflow.steps.length} steps
+                  </p>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleDeleteWorkflow(workflow.id)
+                  }}
+                  className={`p-1 rounded hover:bg-white/20 ${
+                    selectedWorkflow?.id === workflow.id ? 'text-white' : 'text-red-500'
+                  }`}
+                >
+                  <RiDeleteBinLine size={16} />
+                </button>
+              </div>
+            </motion.div>
           ))}
         </div>
-      </DragDropContext>
 
-      {/* Action Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Schedule Interview</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Candidate</Label>
-              <p className="font-medium">{selectedCandidate?.name}</p>
+        {/* Workflow Details */}
+        <div className="lg:col-span-3">
+          {selectedWorkflow ? (
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold">{selectedWorkflow.name}</h2>
+                  <p className="text-gray-600">{selectedWorkflow.description}</p>
+                </div>
+                <button
+                  onClick={() => setShowAddStep(true)}
+                  className="px-4 py-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 flex items-center gap-2"
+                >
+                  <RiAddLine /> Add Step
+                </button>
+              </div>
+
+              {/* Workflow Steps */}
+              <div className="space-y-4">
+                {selectedWorkflow.steps.length > 0 ? (
+                  selectedWorkflow.steps.map((step, index) => (
+                    <motion.div
+                      key={step.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="relative"
+                    >
+                      {/* Connection Line */}
+                      {index < selectedWorkflow.steps.length - 1 && (
+                        <div className="absolute left-6 top-12 w-0.5 h-20 bg-gray-300" />
+                      )}
+                      
+                      <div className="flex items-start gap-4">
+                        {/* Step Number */}
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-white ${
+                          step.status === 'completed' ? 'bg-green-500' :
+                          step.status === 'active' ? 'bg-blue-500' :
+                          'bg-gray-400'
+                        }`}>
+                          {step.status === 'completed' ? <RiCheckLine /> : step.order}
+                        </div>
+
+                        {/* Step Content */}
+                        <div className="flex-1 bg-gray-50 rounded-lg p-4">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h4 className="font-semibold text-lg">{step.name}</h4>
+                              <p className="text-gray-600 text-sm mt-1">{step.description}</p>
+                              
+                              <div className="flex items-center gap-4 mt-3 text-sm text-gray-500">
+                                <span className="flex items-center gap-1">
+                                  <RiTimeLine /> {step.duration}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <RiUserLine /> {step.assignee}
+                                </span>
+                                <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(step.status)}`}>
+                                  {step.status}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <select
+                                value={step.status}
+                                onChange={(e) => handleStepStatusChange(step.id, e.target.value as WorkflowStep['status'])}
+                                className="px-2 py-1 text-sm border rounded"
+                              >
+                                <option value="pending">Pending</option>
+                                <option value="active">Active</option>
+                                <option value="completed">Completed</option>
+                              </select>
+                              
+                              <button
+                                onClick={() => setEditingStep(step)}
+                                className="p-1 text-gray-600 hover:bg-gray-200 rounded"
+                              >
+                                <RiEditLine size={16} />
+                              </button>
+                              
+                              <button
+                                onClick={() => handleDeleteStep(step.id)}
+                                className="p-1 text-red-600 hover:bg-red-50 rounded"
+                              >
+                                <RiDeleteBinLine size={16} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className="text-center py-12 bg-gray-50 rounded-lg">
+                    <p className="text-gray-500">No steps added yet</p>
+                    <button
+                      onClick={() => setShowAddStep(true)}
+                      className="mt-4 px-4 py-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200"
+                    >
+                      Add First Step
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-            <div>
-              <Label htmlFor="interview-date">Interview Date</Label>
-              <Input id="interview-date" type="datetime-local" />
+          ) : (
+            <div className="bg-white rounded-xl p-12 text-center">
+              <p className="text-gray-500">Select a workflow to view details</p>
             </div>
-            <div>
-              <Label htmlFor="interview-notes">Notes</Label>
-              <Textarea id="interview-notes" placeholder="Add interview notes..." />
+          )}
+        </div>
+      </div>
+
+      {/* Add Workflow Modal */}
+      {showAddWorkflow && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+        >
+          <motion.div
+            initial={{ scale: 0.9 }}
+            animate={{ scale: 1 }}
+            className="bg-white rounded-xl p-6 max-w-md w-full"
+          >
+            <h3 className="text-xl font-bold mb-4">Create New Workflow</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Workflow Name *
+                </label>
+                <input
+                  type="text"
+                  value={newWorkflow.name}
+                  onChange={(e) => setNewWorkflow({ ...newWorkflow, name: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
+                <textarea
+                  value={newWorkflow.description}
+                  onChange={(e) => setNewWorkflow({ ...newWorkflow, description: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => setShowAddWorkflow(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddWorkflow}
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:opacity-90"
+                >
+                  Create
+                </button>
+              </div>
             </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={() => {
-                toast({
-                  title: "Interview Scheduled",
-                  description: `Interview scheduled for ${selectedCandidate?.name}`
-                })
-                setIsDialogOpen(false)
-              }}>
-                Schedule
-              </Button>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {/* Add/Edit Step Modal */}
+      {(showAddStep || editingStep) && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+        >
+          <motion.div
+            initial={{ scale: 0.9 }}
+            animate={{ scale: 1 }}
+            className="bg-white rounded-xl p-6 max-w-md w-full"
+          >
+            <h3 className="text-xl font-bold mb-4">
+              {editingStep ? 'Edit Step' : 'Add New Step'}
+            </h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Step Name *
+                </label>
+                <input
+                  type="text"
+                  value={editingStep ? editingStep.name : newStep.name}
+                  onChange={(e) => editingStep
+                    ? setEditingStep({ ...editingStep, name: e.target.value })
+                    : setNewStep({ ...newStep, name: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
+                <textarea
+                  value={editingStep ? editingStep.description : newStep.description}
+                  onChange={(e) => editingStep
+                    ? setEditingStep({ ...editingStep, description: e.target.value })
+                    : setNewStep({ ...newStep, description: e.target.value })
+                  }
+                  rows={3}
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Duration
+                </label>
+                <input
+                  type="text"
+                  value={editingStep ? editingStep.duration : newStep.duration}
+                  onChange={(e) => editingStep
+                    ? setEditingStep({ ...editingStep, duration: e.target.value })
+                    : setNewStep({ ...newStep, duration: e.target.value })
+                  }
+                  placeholder="e.g. 1-2 days"
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Assignee *
+                </label>
+                <input
+                  type="text"
+                  value={editingStep ? editingStep.assignee : newStep.assignee}
+                  onChange={(e) => editingStep
+                    ? setEditingStep({ ...editingStep, assignee: e.target.value })
+                    : setNewStep({ ...newStep, assignee: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => {
+                    setShowAddStep(false)
+                    setEditingStep(null)
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={editingStep ? handleUpdateStep : handleAddStep}
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:opacity-90"
+                >
+                  {editingStep ? 'Update' : 'Add'}
+                </button>
+              </div>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </motion.div>
+        </motion.div>
+      )}
     </div>
   )
 }

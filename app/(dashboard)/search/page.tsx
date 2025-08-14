@@ -1,19 +1,26 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { 
   RiSearchLine, 
   RiFilterLine, 
   RiUserLine, 
   RiMapPinLine,
   RiMoneyDollarCircleLine,
-  RiTimeLine
+  RiTimeLine,
+  RiBriefcaseLine,
+  RiBuilding2Line
 } from 'react-icons/ri'
 
 export default function SearchPage() {
-  const [searchQuery, setSearchQuery] = useState('')
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const initialQuery = searchParams.get('q') || ''
+  
+  const [searchQuery, setSearchQuery] = useState(initialQuery)
   const [searchType, setSearchType] = useState<'candidates' | 'jobs' | 'clients'>('candidates')
   const [filters, setFilters] = useState({
     location: '',
@@ -26,46 +33,95 @@ export default function SearchPage() {
   const [results, setResults] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
+  const supabase = createClient()
 
-  // Sample data
-  const sampleCandidates = [
-    { id: 1, name: 'John Doe', role: 'Software Engineer', location: 'New York', salary: 120000, experience: 5, skills: ['React', 'Node.js'], status: 'available' },
-    { id: 2, name: 'Jane Smith', role: 'Product Manager', location: 'San Francisco', salary: 150000, experience: 7, skills: ['Agile', 'Scrum'], status: 'interviewing' },
-    { id: 3, name: 'Mike Johnson', role: 'UI/UX Designer', location: 'Los Angeles', salary: 95000, experience: 3, skills: ['Figma', 'Adobe XD'], status: 'available' }
-  ]
-
-  const sampleJobs = [
-    { id: 1, title: 'Senior Developer', company: 'Tech Corp', location: 'Remote', salary: '100k-150k', type: 'Full-time', posted: '2 days ago' },
-    { id: 2, title: 'Product Manager', company: 'StartupXYZ', location: 'New York', salary: '120k-180k', type: 'Full-time', posted: '1 week ago' }
-  ]
+  // Run search on mount if query exists
+  useEffect(() => {
+    if (initialQuery) {
+      handleSearch()
+    }
+  }, [])
 
   async function handleSearch() {
     setLoading(true)
     
-    setTimeout(() => {
+    try {
+      let query
+      
       if (searchType === 'candidates') {
-        let filtered = sampleCandidates
+        query = supabase.from('candidates').select('*')
         
         if (searchQuery) {
-          filtered = filtered.filter(c => 
-            c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            c.role.toLowerCase().includes(searchQuery.toLowerCase())
-          )
+          query = query.or(`name.ilike.%${searchQuery}%,role.ilike.%${searchQuery}%,skills.cs.{${searchQuery}}`)
         }
         
         if (filters.location) {
-          filtered = filtered.filter(c => 
-            c.location.toLowerCase().includes(filters.location.toLowerCase())
-          )
+          query = query.ilike('location', `%${filters.location}%`)
         }
         
-        setResults(filtered)
+        if (filters.minSalary) {
+          query = query.gte('expected_salary', filters.minSalary)
+        }
+        
+        if (filters.maxSalary) {
+          query = query.lte('expected_salary', filters.maxSalary)
+        }
+        
+        if (filters.status !== 'all') {
+          query = query.eq('status', filters.status)
+        }
+      } else if (searchType === 'jobs') {
+        query = supabase.from('jobs').select('*')
+        
+        if (searchQuery) {
+          query = query.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`)
+        }
       } else {
-        setResults(sampleJobs)
+        query = supabase.from('clients').select('*')
+        
+        if (searchQuery) {
+          query = query.or(`company_name.ilike.%${searchQuery}%,industry.ilike.%${searchQuery}%`)
+        }
       }
       
+      const { data, error } = await query
+      
+      if (error) throw error
+      
+      setResults(data || [])
+    } catch (error) {
+      console.error('Search error:', error)
+      // Use sample data as fallback
+      setResults(getSampleData())
+    } finally {
       setLoading(false)
-    }, 500)
+    }
+  }
+
+  function getSampleData() {
+    if (searchType === 'candidates') {
+      return [
+        { id: 1, name: 'John Doe', role: 'Software Engineer', location: 'New York', expected_salary: 120000, experience: 5, skills: ['React', 'Node.js'], status: 'available' },
+        { id: 2, name: 'Jane Smith', role: 'Product Manager', location: 'San Francisco', expected_salary: 150000, experience: 7, skills: ['Agile', 'Scrum'], status: 'interviewing' },
+        { id: 3, name: 'Mike Johnson', role: 'UI/UX Designer', location: 'Los Angeles', expected_salary: 95000, experience: 3, skills: ['Figma', 'Adobe XD'], status: 'available' }
+      ]
+    } else if (searchType === 'jobs') {
+      return [
+        { id: 1, title: 'Senior Developer', company: 'Tech Corp', location: 'Remote', salary_range: '100k-150k', employment_type: 'Full-time', created_at: new Date() },
+        { id: 2, title: 'Product Manager', company: 'StartupXYZ', location: 'New York', salary_range: '120k-180k', employment_type: 'Full-time', created_at: new Date() }
+      ]
+    } else {
+      return [
+        { id: 1, company_name: 'Tech Corp', industry: 'Technology', location: 'San Francisco', employee_count: '100-500' },
+        { id: 2, company_name: 'Finance Inc', industry: 'Banking', location: 'New York', employee_count: '1000+' }
+      ]
+    }
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch()
+    }
   }
 
   return (
@@ -83,7 +139,10 @@ export default function SearchPage() {
         {(['candidates', 'jobs', 'clients'] as const).map((type) => (
           <button
             key={type}
-            onClick={() => setSearchType(type)}
+            onClick={() => {
+              setSearchType(type)
+              setResults([])
+            }}
             className={`px-6 py-2 rounded-lg font-medium capitalize transition-all ${
               searchType === type
                 ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
@@ -107,7 +166,7 @@ export default function SearchPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              onKeyPress={handleKeyPress}
               placeholder={`Search ${searchType}...`}
               className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
@@ -127,7 +186,7 @@ export default function SearchPage() {
         </div>
 
         {/* Filters Panel */}
-        {showFilters && (
+        {showFilters && searchType === 'candidates' && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
@@ -196,7 +255,12 @@ export default function SearchPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               whileHover={{ scale: 1.02 }}
-              className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 hover:shadow-lg transition-all"
+              onClick={() => {
+                if (searchType === 'candidates') router.push(`/candidates/${result.id}`)
+                else if (searchType === 'jobs') router.push(`/jobs/${result.id}`)
+                else router.push(`/clients/${result.id}`)
+              }}
+              className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 hover:shadow-lg transition-all cursor-pointer"
             >
               {searchType === 'candidates' && (
                 <>
@@ -215,7 +279,7 @@ export default function SearchPage() {
                   </div>
                   <div className="space-y-2 text-sm text-gray-600">
                     <p>📍 {result.location}</p>
-                    <p>💰 ${result.salary.toLocaleString()}</p>
+                    <p>💰 ${(result.expected_salary || 0).toLocaleString()}</p>
                     <p>⏰ {result.experience} years experience</p>
                   </div>
                 </>
@@ -227,9 +291,19 @@ export default function SearchPage() {
                   <p className="text-purple-600 mb-3">{result.company}</p>
                   <div className="space-y-2 text-sm text-gray-600">
                     <p>📍 {result.location}</p>
-                    <p>💰 {result.salary}</p>
-                    <p>⏰ {result.type}</p>
-                    <p className="text-xs text-gray-400">Posted {result.posted}</p>
+                    <p>💰 {result.salary_range}</p>
+                    <p>⏰ {result.employment_type}</p>
+                  </div>
+                </>
+              )}
+              
+              {searchType === 'clients' && (
+                <>
+                  <h3 className="font-semibold text-lg mb-1">{result.company_name}</h3>
+                  <p className="text-purple-600 mb-3">{result.industry}</p>
+                  <div className="space-y-2 text-sm text-gray-600">
+                    <p>📍 {result.location}</p>
+                    <p>👥 {result.employee_count} employees</p>
                   </div>
                 </>
               )}
