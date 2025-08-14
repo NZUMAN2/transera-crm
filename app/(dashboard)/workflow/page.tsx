@@ -2,16 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { 
-  RiFlowChart,
-  RiAddLine,
-  RiEditLine,
-  RiDeleteBinLine,
-  RiCheckLine,
-  RiTimeLine,
-  RiArrowRightLine,
-  RiDragMoveLine
-} from 'react-icons/ri'
 
 interface WorkflowStep {
   id: string
@@ -56,9 +46,13 @@ export default function WorkflowPage() {
   function loadWorkflows() {
     const saved = localStorage.getItem('workflows')
     if (saved) {
-      setWorkflows(JSON.parse(saved))
+      const parsed = JSON.parse(saved)
+      setWorkflows(parsed)
+      if (parsed.length > 0) {
+        setSelectedWorkflow(parsed[0])
+      }
     } else {
-      // Create default workflows
+      // Create default workflow
       const defaultWorkflows: Workflow[] = [
         {
           id: '1',
@@ -117,6 +111,7 @@ export default function WorkflowPage() {
       ]
       setWorkflows(defaultWorkflows)
       setSelectedWorkflow(defaultWorkflows[0])
+      localStorage.setItem('workflows', JSON.stringify(defaultWorkflows))
     }
   }
 
@@ -273,9 +268,9 @@ export default function WorkflowPage() {
         </div>
         <button
           onClick={() => setShowAddWorkflow(true)}
-          className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg flex items-center gap-2"
+          className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg"
         >
-          <RiAddLine /> New Workflow
+          ➕ New Workflow
         </button>
       </div>
 
@@ -312,7 +307,7 @@ export default function WorkflowPage() {
                     selectedWorkflow?.id === workflow.id ? 'text-white' : 'text-red-500'
                   }`}
                 >
-                  <RiDeleteBinLine size={16} />
+                  🗑️
                 </button>
               </div>
             </motion.div>
@@ -330,9 +325,9 @@ export default function WorkflowPage() {
                 </div>
                 <button
                   onClick={() => setShowAddStep(true)}
-                  className="px-4 py-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 flex items-center gap-2"
+                  className="px-4 py-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200"
                 >
-                  <RiAddLine /> Add Step
+                  ➕ Add Step
                 </button>
               </div>
 
@@ -359,7 +354,7 @@ export default function WorkflowPage() {
                           step.status === 'active' ? 'bg-blue-500' :
                           'bg-gray-400'
                         }`}>
-                          {step.status === 'completed' ? <RiCheckLine /> : step.order}
+                          {step.status === 'completed' ? '✓' : step.order}
                         </div>
 
                         {/* Step Content */}
@@ -370,12 +365,8 @@ export default function WorkflowPage() {
                               <p className="text-gray-600 text-sm mt-1">{step.description}</p>
                               
                               <div className="flex items-center gap-4 mt-3 text-sm text-gray-500">
-                                <span className="flex items-center gap-1">
-                                  <RiTimeLine /> {step.duration}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <RiUserLine /> {step.assignee}
-                                </span>
+                                <span>⏱️ {step.duration}</span>
+                                <span>👤 {step.assignee}</span>
                                 <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(step.status)}`}>
                                   {step.status}
                                 </span>
@@ -397,14 +388,14 @@ export default function WorkflowPage() {
                                 onClick={() => setEditingStep(step)}
                                 className="p-1 text-gray-600 hover:bg-gray-200 rounded"
                               >
-                                <RiEditLine size={16} />
+                                ✏️
                               </button>
                               
                               <button
                                 onClick={() => handleDeleteStep(step.id)}
                                 className="p-1 text-red-600 hover:bg-red-50 rounded"
                               >
-                                <RiDeleteBinLine size={16} />
+                                🗑️
                               </button>
                             </div>
                           </div>
@@ -435,14 +426,10 @@ export default function WorkflowPage() {
 
       {/* Add Workflow Modal */}
       {showAddWorkflow && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-        >
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <motion.div
-            initial={{ scale: 0.9 }}
-            animate={{ scale: 1 }}
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
             className="bg-white rounded-xl p-6 max-w-md w-full"
           >
             <h3 className="text-xl font-bold mb-4">Create New Workflow</h3>
@@ -488,19 +475,15 @@ export default function WorkflowPage() {
               </div>
             </div>
           </motion.div>
-        </motion.div>
+        </div>
       )}
 
       {/* Add/Edit Step Modal */}
       {(showAddStep || editingStep) && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-        >
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <motion.div
-            initial={{ scale: 0.9 }}
-            animate={{ scale: 1 }}
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
             className="bg-white rounded-xl p-6 max-w-md w-full"
           >
             <h3 className="text-xl font-bold mb-4">
@@ -588,7 +571,7 @@ export default function WorkflowPage() {
               </div>
             </div>
           </motion.div>
-        </motion.div>
+        </div>
       )}
     </div>
   )
