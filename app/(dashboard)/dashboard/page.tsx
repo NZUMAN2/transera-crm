@@ -1,5 +1,7 @@
 'use client'
 
+import { SecureStorage } from '@/lib/security/secure-storage'
+import { useSecureData } from '@/lib/hooks/use-secure-data'
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'

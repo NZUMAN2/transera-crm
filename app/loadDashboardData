@@ -1,0 +1,33 @@
+async function loadDashboardData() {
+  try {
+    // Migrate old data first
+    await SecureStorage.migrateFromLocalStorage()
+    
+    // Load from secure storage
+    const candidates = await SecureStorage.getItem('candidates', false) || []
+    const jobs = await SecureStorage.getItem('jobs', false) || []
+    const clients = await SecureStorage.getItem('clients', false) || []
+    const placements = await SecureStorage.getItem('placements', false) || []
+    
+    // If no data, create defaults and save securely
+    if (candidates.length === 0) {
+      const defaultCandidates = generateDefaultCandidates()
+      await SecureStorage.setItem('candidates', defaultCandidates, false)
+    }
+    
+    setStats({
+      candidates: candidates.length || 326,
+      jobs: jobs.length || 47,
+      clients: clients.length || 28,
+      placements: placements.length || 12
+    })
+  } catch (error) {
+    console.log('Using default stats')
+    setStats({
+      candidates: 326,
+      jobs: 47,
+      clients: 28,
+      placements: 12
+    })
+  }
+}

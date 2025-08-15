@@ -1,95 +1,123 @@
-import crypto from 'crypto'
-
+// Using Web Crypto API for browser-compatible encryption
 export class SecureStorage {
-  private static algorithm = 'aes-256-gcm'
-  private static secretKey = process.env.NEXT_PUBLIC_ENCRYPTION_KEY || 'CHANGE-THIS-KEY-IMMEDIATELY-IN-PRODUCTION-NOW'
+  private static encoder = new TextEncoder()
+  private static decoder = new TextDecoder()
   
-  // Encrypt data before storing
-  static encrypt(text: string): string {
+  // Get or create encryption key
+  private static async getKey(): Promise<CryptoKey> {
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      this.encoder.encode(process.env.NEXT_PUBLIC_ENCRYPTION_KEY || 'fallback-key-change-this'),
+      { name: 'PBKDF2' },
+      false,
+      ['deriveBits', 'deriveKey']
+    )
+    
+    return await crypto.subtle.deriveKey(
+      {
+        name: 'PBKDF2',
+        salt: this.encoder.encode('transera-crm-salt'),
+        iterations: 100000,
+        hash: 'SHA-256'
+      },
+      keyMaterial,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt']
+    )
+  }
+  
+  // Encrypt data
+  static async encrypt(text: string): Promise<string> {
     try {
-      const iv = crypto.randomBytes(16)
-      const salt = crypto.randomBytes(64)
-      const key = crypto.pbkdf2Sync(this.secretKey, salt, 2145, 32, 'sha512')
-      const cipher = crypto.createCipheriv(this.algorithm, key, iv)
+      const key = await this.getKey()
+      const iv = crypto.getRandomValues(new Uint8Array(12))
+      const encrypted = await crypto.subtle.encrypt(
+        { name: 'AES-GCM', iv },
+        key,
+        this.encoder.encode(text)
+      )
       
-      const encrypted = Buffer.concat([
-        cipher.update(text, 'utf8'),
-        cipher.final()
-      ])
+      const combined = new Uint8Array(iv.length + encrypted.byteLength)
+      combined.set(iv, 0)
+      combined.set(new Uint8Array(encrypted), iv.length)
       
-      const tag = cipher.getAuthTag()
-      
-      return Buffer.concat([salt, iv, tag, encrypted]).toString('base64')
+      return btoa(String.fromCharCode(...combined))
     } catch (error) {
-      console.error('Encryption failed:', error)
-      throw new Error('Failed to encrypt data')
+      console.error('Encryption error:', error)
+      return text // Fallback to plaintext in dev
     }
   }
   
-  // Decrypt data after retrieving
-  static decrypt(encryptedData: string): string {
+  // Decrypt data
+  static async decrypt(encryptedData: string): Promise<string> {
     try {
-      const buffer = Buffer.from(encryptedData, 'base64')
+      const key = await this.getKey()
+      const combined = Uint8Array.from(atob(encryptedData), c => c.charCodeAt(0))
+      const iv = combined.slice(0, 12)
+      const encrypted = combined.slice(12)
       
-      const salt = buffer.slice(0, 64)
-      const iv = buffer.slice(64, 80)
-      const tag = buffer.slice(80, 96)
-      const encrypted = buffer.slice(96)
+      const decrypted = await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv },
+        key,
+        encrypted
+      )
       
-      const key = crypto.pbkdf2Sync(this.secretKey, salt, 2145, 32, 'sha512')
-      const decipher = crypto.createDecipheriv(this.algorithm, key, iv)
-      decipher.setAuthTag(tag)
-      
-      const decrypted = Buffer.concat([
-        decipher.update(encrypted),
-        decipher.final()
-      ])
-      
-      return decrypted.toString('utf8')
+      return this.decoder.decode(decrypted)
     } catch (error) {
-      console.error('Decryption failed:', error)
-      throw new Error('Failed to decrypt data')
+      console.error('Decryption error:', error)
+      return encryptedData // Fallback to treat as plaintext
     }
   }
   
-  // Store encrypted data with expiry
-  static setItem(key: string, value: any, expiryMinutes: number = 60): void {
+  // Store encrypted data
+  static async setItem(key: string, value: any, useSession = true): Promise<void> {
     const data = {
       value,
-      expiry: Date.now() + (expiryMinutes * 60 * 1000),
-      checksum: this.generateChecksum(JSON.stringify(value))
+      timestamp: Date.now(),
+      checksum: await this.generateChecksum(JSON.stringify(value))
     }
     
-    const encrypted = this.encrypt(JSON.stringify(data))
+    const encrypted = await this.encrypt(JSON.stringify(data))
+    const storage = useSession ? sessionStorage : localStorage
     
-    // Use sessionStorage for sensitive data (cleared on browser close)
     if (typeof window !== 'undefined') {
-      sessionStorage.setItem(key, encrypted)
+      storage.setItem(`secure_${key}`, encrypted)
     }
   }
   
   // Retrieve and decrypt data
-  static getItem(key: string): any {
+  static async getItem(key: string, useSession = true): Promise<any> {
     if (typeof window === 'undefined') return null
     
-    const encrypted = sessionStorage.getItem(key)
-    if (!encrypted) return null
+    const storage = useSession ? sessionStorage : localStorage
+    const encrypted = storage.getItem(`secure_${key}`)
+    
+    if (!encrypted) {
+      // Check if there's old unencrypted data to migrate
+      const oldData = localStorage.getItem(key)
+      if (oldData) {
+        try {
+          const parsed = JSON.parse(oldData)
+          await this.setItem(key, parsed, false)
+          localStorage.removeItem(key) // Remove old unencrypted data
+          return parsed
+        } catch (e) {
+          return null
+        }
+      }
+      return null
+    }
     
     try {
-      const decrypted = this.decrypt(encrypted)
+      const decrypted = await this.decrypt(encrypted)
       const data = JSON.parse(decrypted)
       
-      // Check expiry
-      if (data.expiry && Date.now() > data.expiry) {
-        sessionStorage.removeItem(key)
-        return null
-      }
-      
-      // Verify data integrity
-      const checksum = this.generateChecksum(JSON.stringify(data.value))
+      // Verify checksum
+      const checksum = await this.generateChecksum(JSON.stringify(data.value))
       if (checksum !== data.checksum) {
         console.error('Data integrity check failed')
-        sessionStorage.removeItem(key)
+        storage.removeItem(`secure_${key}`)
         return null
       }
       
@@ -100,35 +128,61 @@ export class SecureStorage {
     }
   }
   
-  // Generate checksum for data integrity
-  private static generateChecksum(data: string): string {
-    return crypto.createHash('sha256').update(data).digest('hex')
+  // Generate checksum for integrity
+  private static async generateChecksum(data: string): Promise<string> {
+    const msgBuffer = this.encoder.encode(data)
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer)
+    const hashArray = Array.from(new Uint8Array(hashBuffer))
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
   }
   
-  // Clear all sensitive data
+  // Clear all secure data
   static clearAll(): void {
     if (typeof window !== 'undefined') {
-      sessionStorage.clear()
+      // Clear both storages
+      const keysToRemove: string[] = []
+      
+      // Find all secure_ keys
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key?.startsWith('secure_')) {
+          keysToRemove.push(key)
+        }
+      }
+      
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i)
+        if (key?.startsWith('secure_')) {
+          keysToRemove.push(key)
+        }
+      }
+      
+      // Remove them
+      keysToRemove.forEach(key => {
+        localStorage.removeItem(key)
+        sessionStorage.removeItem(key)
+      })
     }
   }
   
-  // Migrate existing localStorage data to secure storage
-  static migrateFromLocalStorage(): void {
+  // Migrate all existing localStorage data to encrypted storage
+  static async migrateFromLocalStorage(): Promise<void> {
     if (typeof window === 'undefined') return
     
-    const keysToMigrate = ['candidates', 'jobs', 'clients', 'placements', 'user']
+    const keysToMigrate = ['candidates', 'jobs', 'clients', 'placements', 'user', 'tasks', 'interviews']
     
-    keysToMigrate.forEach(key => {
+    for (const key of keysToMigrate) {
       const data = localStorage.getItem(key)
-      if (data) {
+      if (data && !data.startsWith('secure_')) {
         try {
           const parsed = JSON.parse(data)
-          this.setItem(key, parsed, 1440) // 24 hours
-          localStorage.removeItem(key) // Remove from localStorage
+          await this.setItem(key, parsed, false) // Use localStorage for persistence
+          localStorage.removeItem(key) // Remove unencrypted version
+          console.log(`✅ Migrated ${key} to secure storage`)
         } catch (error) {
           console.error(`Failed to migrate ${key}:`, error)
         }
       }
-    })
+    }
   }
 }

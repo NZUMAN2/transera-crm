@@ -7,8 +7,13 @@ export function useSecureData<T>(key: string, initialValue: T) {
   const [error, setError] = useState<string | null>(null)
   
   useEffect(() => {
+    loadData()
+  }, [key])
+  
+  const loadData = async () => {
     try {
-      const stored = SecureStorage.getItem(key)
+      setLoading(true)
+      const stored = await SecureStorage.getItem(key, false) // Use localStorage for persistence
       if (stored) {
         setData(stored)
       }
@@ -18,12 +23,16 @@ export function useSecureData<T>(key: string, initialValue: T) {
     } finally {
       setLoading(false)
     }
-  }, [key])
+  }
   
-  const updateData = (newData: T) => {
+  const updateData = async (newData: T | ((prev: T) => T)) => {
     try {
-      SecureStorage.setItem(key, newData)
-      setData(newData)
+      const valueToStore = typeof newData === 'function' 
+        ? (newData as (prev: T) => T)(data)
+        : newData
+        
+      await SecureStorage.setItem(key, valueToStore, false)
+      setData(valueToStore)
       setError(null)
     } catch (err) {
       setError('Failed to save secure data')
@@ -31,5 +40,26 @@ export function useSecureData<T>(key: string, initialValue: T) {
     }
   }
   
-  return { data, updateData, loading, error }
+  const clearData = async () => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(`secure_${key}`)
+        sessionStorage.removeItem(`secure_${key}`)
+      }
+      setData(initialValue)
+      setError(null)
+    } catch (err) {
+      setError('Failed to clear data')
+      console.error(err)
+    }
+  }
+  
+  return { 
+    data, 
+    setData: updateData, 
+    loading, 
+    error,
+    reload: loadData,
+    clear: clearData
+  }
 }
