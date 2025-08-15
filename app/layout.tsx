@@ -1,23 +1,13 @@
-import type { Metadata } from "next"
-import { Inter } from "next/font/google"
-import "./globals.css"
+// 3. Update app/layout.tsx to wrap with AuthProvider
+import { AuthProvider } from '@/lib/auth/auth-context'
 
-const inter = Inter({ subsets: ["latin"] })
-
-export const metadata: Metadata = {
-  title: "TransEra Solutions - Professional Recruitment CRM",
-  description: "Manage your recruitment pipeline efficiently",
-}
-
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        {children}
+      <body>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   )
