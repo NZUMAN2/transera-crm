@@ -22,7 +22,7 @@ export default function DashboardPage() {
   }, [])
 
   function loadDashboardData() {
-    // Load from localStorage instead of Supabase
+    // Load from localStorage for now
     try {
       const candidates = JSON.parse(localStorage.getItem('candidates') || '[]')
       const jobs = JSON.parse(localStorage.getItem('jobs') || '[]')
@@ -43,7 +43,6 @@ export default function DashboardPage() {
       })
     } catch (error) {
       console.log('Using default stats')
-      // Use default stats if localStorage fails
       setStats({
         candidates: 326,
         jobs: 47,
@@ -201,8 +200,8 @@ export default function DashboardPage() {
         animate={{ opacity: 1, y: 0 }}
         className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 rounded-2xl p-8 text-white shadow-xl"
       >
-        <h1 className="text-3xl font-bold mb-2">🚀 TransEra CRM - Fully Functional! 🚀</h1>
-        <p className="text-purple-100 mb-4">Manage your recruitment pipeline efficiently</p>
+        <h1 className="text-3xl font-bold mb-2">🚀 TransEra CRM - Secure Edition 🔐</h1>
+        <p className="text-purple-100 mb-4">Manage your recruitment pipeline securely</p>
         
         <form onSubmit={handleSearch} className="max-w-xl">
           <div className="relative">

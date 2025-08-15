@@ -1,0 +1,182 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  name          String?
+  role          Role      @default(RECRUITER)
+  permissions   String[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastLogin     DateTime?
+  
+  candidates    Candidate[]
+  jobs          Job[]
+  activities    Activity[]
+}
+
+model Candidate {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  phone         String?
+  role          String
+  experience    Int
+  skills        String[]
+  resume        String?
+  status        CandidateStatus @default(ACTIVE)
+  
+  createdBy     String
+  user          User      @relation(fields: [createdBy], references: [id])
+  
+  applications  Application[]
+  interviews    Interview[]
+  placements    Placement[]
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([email, status])
+}
+
+model Job {
+  id            String    @id @default(cuid())
+  title         String
+  company       String
+  description   String
+  requirements  String[]
+  salaryMin     Int
+  salaryMax     Int
+  currency      String    @default("USD")
+  location      String
+  type          JobType
+  status        JobStatus @default(OPEN)
+  
+  createdBy     String
+  user          User      @relation(fields: [createdBy], references: [id])
+  
+  applications  Application[]
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([status, createdAt])
+}
+
+model Application {
+  id            String    @id @default(cuid())
+  candidateId   String
+  jobId         String
+  status        ApplicationStatus @default(SUBMITTED)
+  notes         String?
+  
+  candidate     Candidate @relation(fields: [candidateId], references: [id])
+  job           Job       @relation(fields: [jobId], references: [id])
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@unique([candidateId, jobId])
+}
+
+model Interview {
+  id            String    @id @default(cuid())
+  candidateId   String
+  date          DateTime
+  type          InterviewType
+  location      String?
+  notes         String?
+  status        InterviewStatus @default(SCHEDULED)
+  
+  candidate     Candidate @relation(fields: [candidateId], references: [id])
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Placement {
+  id            String    @id @default(cuid())
+  candidateId   String
+  company       String
+  position      String
+  salary        Int
+  startDate     DateTime
+  fee           Int
+  
+  candidate     Candidate @relation(fields: [candidateId], references: [id])
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Activity {
+  id            String    @id @default(cuid())
+  userId        String
+  action        String
+  entity        String
+  entityId      String
+  metadata      Json?
+  ipAddress     String?
+  userAgent     String?
+  
+  user          User      @relation(fields: [userId], references: [id])
+  
+  createdAt     DateTime  @default(now())
+}
+
+enum Role {
+  ADMIN
+  RECRUITER
+  VIEWER
+}
+
+enum CandidateStatus {
+  ACTIVE
+  INTERVIEWING
+  PLACED
+  REJECTED
+  ON_HOLD
+}
+
+enum JobStatus {
+  OPEN
+  CLOSED
+  ON_HOLD
+}
+
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  REMOTE
+  HYBRID
+}
+
+enum ApplicationStatus {
+  SUBMITTED
+  REVIEWING
+  SHORTLISTED
+  REJECTED
+  ACCEPTED
+}
+
+enum InterviewType {
+  PHONE
+  VIDEO
+  IN_PERSON
+}
+
+enum InterviewStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
