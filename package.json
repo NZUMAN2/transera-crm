@@ -103,3 +103,11 @@
   },
   "homepage": "https://transera-crm.vercel.app"
 }
+{
+  "scripts": {
+    // ... existing scripts
+    "db:push": "prisma db push",
+    "db:seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts",
+    "db:studio": "prisma studio"
+  }
+}

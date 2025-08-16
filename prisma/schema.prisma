@@ -1,15 +1,352 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
-  output   = "../lib/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+// User model for authentication
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  name          String?
+  role          Role      @default(RECRUITER)
+  permissions   String[]
+  avatar        String?
+  isActive      Boolean   @default(true)
+  lastLogin     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  candidates    Candidate[]
+  jobs          Job[]
+  clients       Client[]
+  activities    Activity[]
+  tasks         Task[]
+  notes         Note[]
+  interviews    Interview[] @relation("InterviewScheduler")
+  placements    Placement[] @relation("PlacementRecruiter")
+  
+  @@index([email])
+  @@map("users")
+}
+
+// Candidate model
+model Candidate {
+  id            String    @id @default(cuid())
+  firstName     String
+  lastName      String
+  email         String    @unique
+  phone         String?
+  role          String
+  experience    Int       @default(0)
+  skills        String[]
+  resume        String?   // URL or file path
+  linkedIn      String?
+  portfolio     String?
+  location      String?
+  salary        Json?     // {min: number, max: number, currency: string}
+  status        CandidateStatus @default(ACTIVE)
+  source        String?   // Where candidate came from
+  rating        Int?      @default(0) // 0-5 rating
+  
+  // Relations
+  createdBy     String
+  user          User      @relation(fields: [createdBy], references: [id])
+  applications  Application[]
+  interviews    Interview[]
+  placements    Placement[]
+  notes         Note[]
+  documents     Document[]
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([email, status])
+  @@index([createdBy])
+  @@map("candidates")
+}
+
+// Job model
+model Job {
+  id            String    @id @default(cuid())
+  title         String
+  company       String
+  clientId      String?
+  description   String    @db.Text
+  requirements  String[]
+  benefits      String[]
+  salaryMin     Int?
+  salaryMax     Int?
+  currency      String    @default("USD")
+  location      String
+  remote        RemoteType @default(ONSITE)
+  type          JobType
+  status        JobStatus @default(OPEN)
+  urgency       Urgency   @default(NORMAL)
+  openings      Int       @default(1)
+  
+  // Relations
+  client        Client?   @relation(fields: [clientId], references: [id])
+  createdBy     String
+  user          User      @relation(fields: [createdBy], references: [id])
+  applications  Application[]
+  placements    Placement[]
+  notes         Note[]
+  
+  publishedAt   DateTime?
+  closedAt      DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([status, createdAt])
+  @@index([clientId])
+  @@index([createdBy])
+  @@map("jobs")
+}
+
+// Client/Company model
+model Client {
+  id            String    @id @default(cuid())
+  name          String
+  industry      String?
+  website       String?
+  contactName   String?
+  contactEmail  String?
+  contactPhone  String?
+  address       String?
+  about         String?   @db.Text
+  size          CompanySize?
+  status        ClientStatus @default(ACTIVE)
+  
+  // Relations
+  jobs          Job[]
+  createdBy     String
+  user          User      @relation(fields: [createdBy], references: [id])
+  placements    Placement[]
+  notes         Note[]
+  contracts     Contract[]
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([status])
+  @@index([createdBy])
+  @@map("clients")
+}
+
+// Application model - Links candidates to jobs
+model Application {
+  id            String    @id @default(cuid())
+  candidateId   String
+  jobId         String
+  status        ApplicationStatus @default(SUBMITTED)
+  coverLetter   String?   @db.Text
+  resume        String?   // Custom resume for this application
+  notes         String?   @db.Text
+  score         Int?      // ATS score or rating
+  
+  // Relations
+  candidate     Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  job           Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  interviews    Interview[]
+  
+  appliedAt     DateTime  @default(now())
+  reviewedAt    DateTime?
+  updatedAt     DateTime  @updatedAt
+  
+  @@unique([candidateId, jobId])
+  @@index([status])
+  @@map("applications")
+}
+
+// Interview model
+model Interview {
+  id            String    @id @default(cuid())
+  candidateId   String
+  jobId         String?
+  applicationId String?
+  scheduledBy   String
+  type          InterviewType
+  round         Int       @default(1)
+  date          DateTime
+  duration      Int       @default(60) // in minutes
+  location      String?
+  meetingLink   String?
+  interviewers  String[]
+  status        InterviewStatus @default(SCHEDULED)
+  feedback      String?   @db.Text
+  rating        Int?      // 0-10 rating
+  result        InterviewResult?
+  notes         String?   @db.Text
+  
+  // Relations
+  candidate     Candidate @relation(fields: [candidateId], references: [id])
+  application   Application? @relation(fields: [applicationId], references: [id])
+  scheduler     User      @relation("InterviewScheduler", fields: [scheduledBy], references: [id])
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([candidateId, date])
+  @@index([status])
+  @@map("interviews")
+}
+
+// Placement model - Successful hires
+model Placement {
+  id            String    @id @default(cuid())
+  candidateId   String
+  jobId         String
+  clientId      String
+  recruiterId   String
+  position      String
+  salary        Int
+  currency      String    @default("USD")
+  startDate     DateTime
+  endDate       DateTime? // For contract positions
+  fee           Int?      // Recruitment fee
+  feeType       FeeType?  // PERCENTAGE or FIXED
+  status        PlacementStatus @default(ACTIVE)
+  
+  // Relations
+  candidate     Candidate @relation(fields: [candidateId], references: [id])
+  job           Job       @relation(fields: [jobId], references: [id])
+  client        Client    @relation(fields: [clientId], references: [id])
+  recruiter     User      @relation("PlacementRecruiter", fields: [recruiterId], references: [id])
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([status])
+  @@index([startDate])
+  @@map("placements")
+}
+
+// Task model
+model Task {
+  id            String    @id @default(cuid())
+  title         String
+  description   String?   @db.Text
+  type          TaskType
+  priority      Priority  @default(MEDIUM)
+  status        TaskStatus @default(TODO)
+  dueDate       DateTime?
+  completedAt   DateTime?
+  relatedTo     String?   // Can be candidateId, jobId, clientId
+  relatedType   String?   // 'candidate', 'job', 'client'
+  
+  // Relations
+  assignedTo    String
+  user          User      @relation(fields: [assignedTo], references: [id])
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([assignedTo, status])
+  @@index([dueDate])
+  @@map("tasks")
+}
+
+// Activity/Audit log
+model Activity {
+  id            String    @id @default(cuid())
+  userId        String
+  action        String    // 'created', 'updated', 'deleted', 'viewed', etc.
+  entity        String    // 'candidate', 'job', 'client', etc.
+  entityId      String
+  metadata      Json?     // Additional data about the action
+  ipAddress     String?
+  userAgent     String?
+  
+  // Relations
+  user          User      @relation(fields: [userId], references: [id])
+  
+  createdAt     DateTime  @default(now())
+  
+  @@index([userId, createdAt])
+  @@index([entity, entityId])
+  @@map("activities")
+}
+
+// Notes model - Can be attached to anything
+model Note {
+  id            String    @id @default(cuid())
+  content       String    @db.Text
+  type          NoteType  @default(GENERAL)
+  isPrivate     Boolean   @default(false)
+  
+  // Polymorphic relations
+  candidateId   String?
+  jobId         String?
+  clientId      String?
+  
+  // Relations
+  candidate     Candidate? @relation(fields: [candidateId], references: [id])
+  job           Job?      @relation(fields: [jobId], references: [id])
+  client        Client?   @relation(fields: [clientId], references: [id])
+  createdBy     String
+  user          User      @relation(fields: [createdBy], references: [id])
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([candidateId])
+  @@index([jobId])
+  @@index([clientId])
+  @@map("notes")
+}
+
+// Document storage
+model Document {
+  id            String    @id @default(cuid())
+  name          String
+  type          String    // 'resume', 'cover_letter', 'contract', etc.
+  url           String    // File URL or path
+  size          Int       // File size in bytes
+  mimeType      String
+  
+  // Relations
+  candidateId   String?
+  candidate     Candidate? @relation(fields: [candidateId], references: [id])
+  
+  uploadedAt    DateTime  @default(now())
+  
+  @@index([candidateId])
+  @@map("documents")
+}
+
+// Contract model for client agreements
+model Contract {
+  id            String    @id @default(cuid())
+  clientId      String
+  title         String
+  type          ContractType
+  status        ContractStatus @default(DRAFT)
+  startDate     DateTime
+  endDate       DateTime?
+  value         Int?
+  currency      String    @default("USD")
+  terms         String?   @db.Text
+  documentUrl   String?
+  
+  // Relations
+  client        Client    @relation(fields: [clientId], references: [id])
+  
+  signedAt      DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([clientId])
+  @@index([status])
+  @@map("contracts")
+}
+
+// ENUMS
+enum Role {
+  ADMIN
+  RECRUITER
